@@ -1,6 +1,10 @@
 <resources>
-    <string name="app_name">Matrice210</string>
+    <string name="app_name">Matrice 210</string>
     <string name="pilot_interface">Pilot interface</string>
+    <string name="moc_interface">Mobile-Onboard communication interface</string>
     <string name="sdk_version">Version: %1$s</string>
-    <string name="send_moc">Send MOC</string>
+    <string name="moc_send_command">Send command</string>
+    <string name="moc_toggle_led">Toggle LED</string>
+    <string name="moc_default_command">Hello world</string>
+    <string name="wsbridge_ip">192.168.43.1</string>
 </resources>

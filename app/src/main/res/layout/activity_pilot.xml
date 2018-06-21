@@ -225,26 +225,6 @@
     </RelativeLayout>
 
 
-    <EditText
-        android:id="@+id/editTextMOC"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="107dp"
-        android:ems="10"
-        android:layout_centerHorizontal="true"
-        android:inputType="textPersonName"
-        android:text="Name" />
-
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="@string/send_moc"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true" />
-
     <!--
     <dji.ux.widget.HistogramWidget
         android:layout_toRightOf="@id/TakeOffReturnPanel"

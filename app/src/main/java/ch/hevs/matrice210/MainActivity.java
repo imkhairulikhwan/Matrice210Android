@@ -9,7 +9,13 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,7 +45,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             isRegistrationInProgress.set(false);
             if (error == DJISDKError.REGISTRATION_SUCCESS) {
                 DJISDKManager.getInstance().startConnectionToProduct();
-
                 Toast.makeText(getApplicationContext(), "SDK registration succeeded!", Toast.LENGTH_LONG).show();
 
                 loginAccount();
@@ -59,12 +64,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
                     @Override
                     public void onReceive(byte[] bytes) {
-                        StringBuilder builder = new StringBuilder();
-                        for(int b : bytes) {
-                            builder.append("" + b + " ");
-                        }
-
-                        Toast.makeText(MainActivity.this, builder, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), bytes.toString(), Toast.LENGTH_LONG).show();
                     }
                 });
             } else {
@@ -90,15 +90,68 @@ public class MainActivity extends Activity implements View.OnClickListener {
     };
     private static final int REQUEST_PERMISSION_CODE = 12345;
     private List<String> missingPermission = new ArrayList<>();
+    private EditText bridgeModeEditText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
+        findViewById(R.id.btn_moc_interface).setOnClickListener(this);
         TextView versionText = (TextView) findViewById(R.id.version);
         versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
+
+        bridgeModeEditText = (EditText) findViewById(R.id.editTxt_bridge);
+        bridgeModeEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH
+                        || actionId == EditorInfo.IME_ACTION_DONE
+                        || event != null
+                        && event.getAction() == KeyEvent.ACTION_DOWN
+                        && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+                    if (event != null && event.isShiftPressed()) {
+                        return false;
+                    } else {
+                        // the user is done typing.
+                        handleBridgeIPTextChange();
+                    }
+                }
+                return false; // pass on to other listeners.
+            }
+        });
+        bridgeModeEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s != null && s.toString().contains("\n")) {
+                    // the user is done typing.
+                    // remove new line characcter
+                    final String currentText = bridgeModeEditText.getText().toString();
+                    bridgeModeEditText.setText(currentText.substring(0, currentText.indexOf('\n')));
+                    handleBridgeIPTextChange();
+                }
+            }
+        });
+
         checkAndRequestPermissions();
+    }
+
+    private void handleBridgeIPTextChange() {
+        // the user is done typing.
+        final String bridgeIP = bridgeModeEditText.getText().toString();
+        DJISDKManager.getInstance().enableBridgeModeWithBridgeAppIP(bridgeIP);
+        if (!TextUtils.isEmpty(bridgeIP)) {
+            Toast.makeText(getApplicationContext(),"BridgeMode ON!\nIP: " + bridgeIP,Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -183,11 +236,18 @@ public class MainActivity extends Activity implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         Class nextActivityClass;
-        int id = view.getId();
-        if (id == R.id.btn_pilot_interface) {
-            nextActivityClass = PilotActivity.class;
-            Intent intent = new Intent(this, nextActivityClass);
-            startActivity(intent);
+        Intent intent;
+        switch (view.getId()) {
+            case R.id.btn_pilot_interface:
+                nextActivityClass = PilotActivity.class;
+                intent = new Intent(this, nextActivityClass);
+                startActivity(intent);
+                break;
+            case R.id.btn_moc_interface:
+                nextActivityClass = MocActivity.class;
+                intent = new Intent(this, nextActivityClass);
+                startActivity(intent);
+                break;
         }
     }
 }

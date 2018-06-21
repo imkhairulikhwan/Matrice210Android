@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.dji.mapkit.maps.DJIMap;
 import com.dji.mapkit.models.DJILatLng;
 
+import ch.hevs.matrice210.tools.DensityUtil;
 import dji.common.error.DJIError;
 import dji.common.util.CommonCallbacks;
 import dji.ux.widget.MapWidget;
@@ -33,8 +34,6 @@ public class PilotActivity extends Activity {
     private int margin;
     private int deviceWidth;
     private int deviceHeight;
-
-    private Button button;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,24 +69,6 @@ public class PilotActivity extends Activity {
             @Override
             public void onClick(View view) {
                 onViewClick(fpvWidget);
-            }
-        });
-
-        button = (Button)findViewById(R.id.button2);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(MainActivity.mFlightController != null) {
-                    EditText txt = (EditText)findViewById(R.id.editTextMOC);
-                    byte[] data = txt.getText().toString().getBytes();
-                    Toast.makeText(getApplicationContext(), data.toString(), Toast.LENGTH_LONG).show();
-                    MainActivity.mFlightController.sendDataToOnboardSDKDevice(data, new CommonCallbacks.CompletionCallback() {
-                        @Override
-                        public void onResult(DJIError djiError) {
-                            Toast.makeText(getApplicationContext(), "Result", Toast.LENGTH_LONG).show();
-                        }
-                    });
-                }
             }
         });
     }
