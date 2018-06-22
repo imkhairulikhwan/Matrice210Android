@@ -9,12 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import dji.common.error.DJIError;
-import dji.common.error.DJISDKError;
 import dji.common.util.CommonCallbacks;
-import dji.sdk.base.BaseProduct;
-import dji.sdk.flightcontroller.FlightController;
-import dji.sdk.products.Aircraft;
-import dji.sdk.sdkmanager.DJISDKManager;
 
 public class MocActivity extends Activity implements View.OnClickListener {
     private Button btn_send, btn_led;
@@ -24,7 +19,7 @@ public class MocActivity extends Activity implements View.OnClickListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_moc);
+        setContentView(R.layout.moc_layout);
         btn_send = (Button) findViewById(R.id.btn_send);
         btn_send.setOnClickListener(this);
         btn_led  = (Button) findViewById(R.id.btn_led);

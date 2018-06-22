@@ -8,17 +8,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.RelativeLayout;
-import android.widget.Toast;
 
 import com.dji.mapkit.maps.DJIMap;
 import com.dji.mapkit.models.DJILatLng;
 
 import ch.hevs.matrice210.tools.DensityUtil;
-import dji.common.error.DJIError;
-import dji.common.util.CommonCallbacks;
 import dji.ux.widget.MapWidget;
 
 /** Activity that shows all the UI elements together */
@@ -38,7 +33,7 @@ public class PilotActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_pilot);
+        setContentView(R.layout.pilot_layout);
 
         height = DensityUtil.dip2px(this, 100);
         width = DensityUtil.dip2px(this, 150);

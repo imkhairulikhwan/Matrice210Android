@@ -1,14 +1,15 @@
 package ch.hevs.matrice210;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
-import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -33,10 +34,80 @@ import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
 
-public class MainActivity extends Activity implements View.OnClickListener {
-    static private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
-    static public Aircraft mAircraft = null;
-    static public FlightController mFlightController = null;
+public class MainFragmentActivity extends FragmentActivity implements View.OnClickListener{
+    // Fragment
+    private FragmentManager fragmentManager;
+    private DashboardFragment dashboardFragment;
+    private PilotActivity pilotActivity;
+    private MocFragment mocFragment;
+
+    // DJI
+    private static final int REQUEST_PERMISSION_CODE = 12345;
+    private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
+    private Aircraft mAircraft = null;
+    private FlightController mFlightController = null;
+    private List<String> missingPermission = new ArrayList<>();
+
+    // UI Elements
+    private EditText editTxt_bridge;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_mainfragment);
+
+        dashboardFragment = new DashboardFragment();
+        pilotActivity = new PilotActivity();
+        mocFragment = new MocFragment();
+
+        fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
+        //fragmentManager.beginTransaction().replace(R.id.main_container_fragment, pilotActivity).addToBackStack(null).commit();
+
+        findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
+        findViewById(R.id.btn_moc_interface).setOnClickListener(this);
+        TextView versionText = (TextView) findViewById(R.id.version);
+        versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
+
+        editTxt_bridge = (EditText) findViewById(R.id.editTxt_bridge);
+        editTxt_bridge.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH
+                        || actionId == EditorInfo.IME_ACTION_DONE
+                        || event != null
+                        && event.getAction() == KeyEvent.ACTION_DOWN
+                        && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+                    if (event != null && event.isShiftPressed()) {
+                        return false;
+                    } else {
+                        // the user is done typing.
+                        handleBridgeIPTextChange();
+                    }
+                }
+                return false; // pass on to other listeners.
+            }
+        });
+        editTxt_bridge.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s != null && s.toString().contains("\n")) {
+                    // the user is done typing.
+                    handleBridgeIPTextChange();
+                }
+            }
+        });
+
+        checkAndRequestPermissions();
+    }
 
     private DJISDKManager.SDKManagerCallback registrationCallback = new DJISDKManager.SDKManagerCallback() {
         @Override
@@ -89,59 +160,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.READ_PHONE_STATE,
     };
-    private static final int REQUEST_PERMISSION_CODE = 12345;
-    private List<String> missingPermission = new ArrayList<>();
-    private EditText editTxt_bridge;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.dashboard__layout);
-        findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
-        findViewById(R.id.btn_moc_interface).setOnClickListener(this);
-        TextView versionText = (TextView) findViewById(R.id.version);
-        versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
-
-        editTxt_bridge = (EditText) findViewById(R.id.editTxt_bridge);
-        editTxt_bridge.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH
-                        || actionId == EditorInfo.IME_ACTION_DONE
-                        || event != null
-                        && event.getAction() == KeyEvent.ACTION_DOWN
-                        && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-                    if (event != null && event.isShiftPressed()) {
-                        return false;
-                    } else {
-                        // the user is done typing.
-                        handleBridgeIPTextChange();
-                    }
-                }
-                return false; // pass on to other listeners.
-            }
-        });
-        editTxt_bridge.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (s != null && s.toString().contains("\n")) {
-                    // the user is done typing.
-                    handleBridgeIPTextChange();
-                }
-            }
-        });
-
-        checkAndRequestPermissions();
-    }
 
     private void handleBridgeIPTextChange() {
         // the user is done typing.
@@ -233,11 +251,32 @@ public class MainActivity extends Activity implements View.OnClickListener {
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
-                    DJISDKManager.getInstance().registerApp(MainActivity.this, registrationCallback);
+                    DJISDKManager.getInstance().registerApp(MainFragmentActivity.this, registrationCallback);
                 }
             });
         }
     }
 
+    @Override
+    public void onClick(View view) {
+        Class nextActivityClass;
+        Intent intent;
+        switch (view.getId()) {
+            case R.id.btn_pilot_interface:
+                nextActivityClass = PilotActivity.class;
+                intent = new Intent(this, nextActivityClass);
+                startActivity(intent);
+                break;
+            case R.id.btn_moc_interface:
+                nextActivityClass = MocActivity.class;
+                intent = new Intent(this, nextActivityClass);
+                startActivity(intent);
+                break;
+        }
+    }
 
+    public void toast(final String str)
+    {
+        Toast.makeText( getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+    }
 }
