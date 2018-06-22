@@ -53,6 +53,13 @@
 
     </TableRow>
 
+    <!-- Dummy item to prevent editTxt_bridge from receiving focus -->
+    <LinearLayout
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:layout_width="0px"
+        android:layout_height="0px"/>
+
     <EditText
         android:id="@+id/editTxt_bridge"
         android:layout_width="wrap_content"
@@ -68,7 +75,9 @@
         android:padding="2dp"
         android:textColor="@color/white"
         android:textColorHint="@android:color/white"
-        android:textSize="15sp" />
+        android:textSize="15sp"
+        android:nextFocusUp="@id/editTxt_bridge"
+        android:nextFocusLeft="@id/editTxt_bridge"/>
 
     <TextView
         android:id="@+id/version"

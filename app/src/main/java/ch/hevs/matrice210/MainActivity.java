@@ -34,9 +34,8 @@ import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
 
 public class MainActivity extends Activity implements View.OnClickListener {
-    private static final String TAG = MainActivity.class.getName();
-    private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
-    static private Aircraft mAircraft = null;
+    static private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
+    static public Aircraft mAircraft = null;
     static public FlightController mFlightController = null;
 
     private DJISDKManager.SDKManagerCallback registrationCallback = new DJISDKManager.SDKManagerCallback() {
@@ -61,12 +60,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 Toast.makeText(getApplicationContext(), "Aircraft connected", Toast.LENGTH_SHORT).show();
                 mAircraft = (Aircraft)newProduct;
                 mFlightController = mAircraft.getFlightController();
-                mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
-                    @Override
-                    public void onReceive(byte[] bytes) {
-                        Toast.makeText(getApplicationContext(), bytes.toString(), Toast.LENGTH_LONG).show();
-                    }
-                });
+                if(MainActivity.mFlightController != null) {
+                    MainActivity.mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
+                        @Override
+                        public void onReceive(byte[] bytes) {
+                            //log(bytes.toString());
+                        }
+                    });
+                }
             } else {
                 Toast.makeText(getApplicationContext(), "Aircraft disconnected", Toast.LENGTH_SHORT).show();
             }
@@ -90,7 +91,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     };
     private static final int REQUEST_PERMISSION_CODE = 12345;
     private List<String> missingPermission = new ArrayList<>();
-    private EditText bridgeModeEditText;
+    private EditText editTxt_bridge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,8 +102,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         TextView versionText = (TextView) findViewById(R.id.version);
         versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
 
-        bridgeModeEditText = (EditText) findViewById(R.id.editTxt_bridge);
-        bridgeModeEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        editTxt_bridge = (EditText) findViewById(R.id.editTxt_bridge);
+        editTxt_bridge.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_SEARCH
@@ -120,7 +121,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 return false; // pass on to other listeners.
             }
         });
-        bridgeModeEditText.addTextChangedListener(new TextWatcher() {
+        editTxt_bridge.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
@@ -134,9 +135,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
             public void afterTextChanged(Editable s) {
                 if (s != null && s.toString().contains("\n")) {
                     // the user is done typing.
-                    // remove new line characcter
-                    final String currentText = bridgeModeEditText.getText().toString();
-                    bridgeModeEditText.setText(currentText.substring(0, currentText.indexOf('\n')));
                     handleBridgeIPTextChange();
                 }
             }
@@ -147,10 +145,17 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private void handleBridgeIPTextChange() {
         // the user is done typing.
-        final String bridgeIP = bridgeModeEditText.getText().toString();
-        DJISDKManager.getInstance().enableBridgeModeWithBridgeAppIP(bridgeIP);
-        if (!TextUtils.isEmpty(bridgeIP)) {
-            Toast.makeText(getApplicationContext(),"BridgeMode ON!\nIP: " + bridgeIP,Toast.LENGTH_LONG).show();
+        String bridgeIP = editTxt_bridge.getText().toString();
+        if (bridgeIP != null) {
+            // Remove new line characcter
+            if(bridgeIP.toString().contains("\n")) {
+                bridgeIP = bridgeIP.substring(0, bridgeIP.indexOf('\n'));
+                editTxt_bridge.setText(bridgeIP);
+            }
+            DJISDKManager.getInstance().enableBridgeModeWithBridgeAppIP(bridgeIP);
+            if (!TextUtils.isEmpty(bridgeIP)) {
+                Toast.makeText(getApplicationContext(), "BridgeMode ON!\nIP: " + bridgeIP, Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -169,6 +174,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     @Override
                     public void onSuccess(final UserAccountState userAccountState) {
                         Toast.makeText(getApplicationContext(), "Login succeeded!", Toast.LENGTH_LONG).show();
+                        handleBridgeIPTextChange();
                     }
                     @Override
                     public void onFailure(DJIError error) {

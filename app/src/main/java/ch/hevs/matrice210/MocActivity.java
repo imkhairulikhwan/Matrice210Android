@@ -9,7 +9,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import dji.common.error.DJIError;
+import dji.common.error.DJISDKError;
 import dji.common.util.CommonCallbacks;
+import dji.sdk.base.BaseProduct;
+import dji.sdk.flightcontroller.FlightController;
+import dji.sdk.products.Aircraft;
+import dji.sdk.sdkmanager.DJISDKManager;
 
 public class MocActivity extends Activity implements View.OnClickListener {
     private Button btn_send, btn_led;
@@ -62,8 +67,15 @@ public class MocActivity extends Activity implements View.OnClickListener {
         super.onLowMemory();
     }
 
-    public void log(String log) {
-        txtView_console.setText(log.concat("\n").concat(txtView_console.getText().toString()));
+    public void log(final String log) {
+        // runOnUiThread used to avoid errors
+        // "Only the original thread that created a view hierarchy can touch its views"
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtView_console.setText(log.concat("\n").concat(txtView_console.getText().toString()));
+            }
+        });
     }
 
     public void sendMocData(String data) {
@@ -72,7 +84,10 @@ public class MocActivity extends Activity implements View.OnClickListener {
             MainActivity.mFlightController.sendDataToOnboardSDKDevice(data.getBytes(), new CommonCallbacks.CompletionCallback() {
                 @Override
                 public void onResult(DJIError djiError) {
-                    //log("Result");
+                    if(djiError != null)
+                        log(djiError.toString());
+                    else
+                        log("sendMocData success");
                 }
             });
         } else {
