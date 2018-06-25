@@ -1,10 +1,10 @@
 package ch.hevs.matrice210;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -20,15 +20,31 @@ import java.util.Observer;
 import dji.sdk.sdkmanager.DJISDKManager;
 
 public class DashboardFragment extends Fragment implements Observer, View.OnClickListener {
+    // UI Elements
+    private EditText editTxt_bridge;
+
+    // Listener
+    private DashboardInteractionListener dashboardIListener;
+
+    public interface DashboardInteractionListener {
+        void handleBridgeIP(final String bridgeIp);
+        void changeFragment(final MainFragmentActivity.fragments fragment);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate( savedInstanceState);
-        findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
-        findViewById(R.id.btn_moc_interface).setOnClickListener(this);
-        TextView versionText = (TextView) findViewById(R.id.version);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.dashboard__layout, container, false);
+        view.findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
+        view.findViewById(R.id.btn_moc_interface).setOnClickListener(this);
+        TextView versionText = (TextView) view.findViewById(R.id.version);
         versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
 
-        EditText editTxt_bridge = (EditText) findViewById(R.id.editTxt_bridge);
+        editTxt_bridge = (EditText) view.findViewById(R.id.editTxt_bridge);
         editTxt_bridge.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -65,11 +81,6 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
                 }
             }
         });
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.pilot_layout, container, false);
         return view;
     }
 
@@ -81,11 +92,18 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
     @Override
     public void onAttach( Context activity) {
         super.onAttach( activity);
+        try {
+            dashboardIListener = (DashboardInteractionListener) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString()
+                    + " must implement DashboardInteractionListener");
+        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
+        dashboardIListener = null;
     }
 
     @Override
@@ -96,20 +114,26 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
         }catch (Exception e) {}
     }
 
+    public void handleBridgeIPTextChange() {
+        String bridgeIP = editTxt_bridge.getText().toString();
+        if (!TextUtils.isEmpty(bridgeIP)) {
+            // Remove new line character
+            if (bridgeIP.contains("\n")) {
+                bridgeIP = bridgeIP.substring(0, bridgeIP.indexOf('\n'));
+                editTxt_bridge.setText(bridgeIP);
+            }
+            dashboardIListener.handleBridgeIP(bridgeIP);
+        }
+    }
+
     @Override
     public void onClick(View view) {
-        Class nextActivityClass;
-        Intent intent;
         switch (view.getId()) {
             case R.id.btn_pilot_interface:
-                nextActivityClass = PilotActivity.class;
-                intent = new Intent(this, nextActivityClass);
-                startActivity(intent);
+                dashboardIListener.changeFragment(MainFragmentActivity.fragments.pilot);
                 break;
             case R.id.btn_moc_interface:
-                nextActivityClass = MocActivity.class;
-                intent = new Intent(this, nextActivityClass);
-                startActivity(intent);
+                dashboardIListener.changeFragment(MainFragmentActivity.fragments.moc);
                 break;
         }
     }

@@ -1,29 +1,23 @@
 package ch.hevs.matrice210;
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
-import android.text.Editable;
 import android.text.TextUtils;
-import android.text.TextWatcher;
-import android.view.KeyEvent;
-import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import ch.hevs.matrice210.Interfaces.MocInteraction;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
 import dji.common.useraccount.UserAccountState;
@@ -34,118 +28,29 @@ import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
 
-public class MainFragmentActivity extends FragmentActivity implements View.OnClickListener{
+public class MainFragmentActivity extends FragmentActivity
+        implements DashboardFragment.DashboardInteractionListener, MocFragment.MocInteractionListener {
     // Fragment
-    private FragmentManager fragmentManager;
+     private FragmentManager fragmentManager;
     private DashboardFragment dashboardFragment;
-    private PilotActivity pilotActivity;
+    private PilotFragment pilotFragment;
     private MocFragment mocFragment;
+    private MocInteraction mocInteraction;
+
+    public enum fragments {
+        dashboard,
+        pilot,
+        moc
+    }
 
     // DJI
-    private static final int REQUEST_PERMISSION_CODE = 12345;
     private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
     private Aircraft mAircraft = null;
     private FlightController mFlightController = null;
     private List<String> missingPermission = new ArrayList<>();
 
-    // UI Elements
-    private EditText editTxt_bridge;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_mainfragment);
-
-        dashboardFragment = new DashboardFragment();
-        pilotActivity = new PilotActivity();
-        mocFragment = new MocFragment();
-
-        fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
-        //fragmentManager.beginTransaction().replace(R.id.main_container_fragment, pilotActivity).addToBackStack(null).commit();
-
-        findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
-        findViewById(R.id.btn_moc_interface).setOnClickListener(this);
-        TextView versionText = (TextView) findViewById(R.id.version);
-        versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
-
-        editTxt_bridge = (EditText) findViewById(R.id.editTxt_bridge);
-        editTxt_bridge.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH
-                        || actionId == EditorInfo.IME_ACTION_DONE
-                        || event != null
-                        && event.getAction() == KeyEvent.ACTION_DOWN
-                        && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-                    if (event != null && event.isShiftPressed()) {
-                        return false;
-                    } else {
-                        // the user is done typing.
-                        handleBridgeIPTextChange();
-                    }
-                }
-                return false; // pass on to other listeners.
-            }
-        });
-        editTxt_bridge.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (s != null && s.toString().contains("\n")) {
-                    // the user is done typing.
-                    handleBridgeIPTextChange();
-                }
-            }
-        });
-
-        checkAndRequestPermissions();
-    }
-
-    private DJISDKManager.SDKManagerCallback registrationCallback = new DJISDKManager.SDKManagerCallback() {
-        @Override
-        public void onRegister(DJIError error) {
-            isRegistrationInProgress.set(false);
-            if (error == DJISDKError.REGISTRATION_SUCCESS) {
-                DJISDKManager.getInstance().startConnectionToProduct();
-                Toast.makeText(getApplicationContext(), "SDK registration succeeded!", Toast.LENGTH_LONG).show();
-
-                loginAccount();
-            } else {
-                Toast.makeText(getApplicationContext(),
-                        "SDK registration failed, check network and retry!",
-                        Toast.LENGTH_LONG).show();
-            }
-        }
-
-        @Override
-        public void onProductChange(BaseProduct oldProduct, BaseProduct newProduct) {
-            if(newProduct != null) {
-                Toast.makeText(getApplicationContext(), "Aircraft connected", Toast.LENGTH_SHORT).show();
-                mAircraft = (Aircraft)newProduct;
-                mFlightController = mAircraft.getFlightController();
-                if(MainActivity.mFlightController != null) {
-                    MainActivity.mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
-                        @Override
-                        public void onReceive(byte[] bytes) {
-                            //log(bytes.toString());
-                        }
-                    });
-                }
-            } else {
-                Toast.makeText(getApplicationContext(), "Aircraft disconnected", Toast.LENGTH_SHORT).show();
-            }
-        }
-    };
-
-    private static final String[] REQUIRED_PERMISSION_LIST = new String[] {
+    private final int REQUEST_PERMISSION_CODE = 12345;
+    private final String[] REQUIRED_PERMISSION_LIST = new String[] {
             Manifest.permission.VIBRATE,
             Manifest.permission.INTERNET,
             Manifest.permission.ACCESS_WIFI_STATE,
@@ -161,20 +66,55 @@ public class MainFragmentActivity extends FragmentActivity implements View.OnCli
             Manifest.permission.READ_PHONE_STATE,
     };
 
-    private void handleBridgeIPTextChange() {
-        // the user is done typing.
-        String bridgeIP = editTxt_bridge.getText().toString();
-        if (bridgeIP != null) {
-            // Remove new line characcter
-            if(bridgeIP.toString().contains("\n")) {
-                bridgeIP = bridgeIP.substring(0, bridgeIP.indexOf('\n'));
-                editTxt_bridge.setText(bridgeIP);
-            }
-            DJISDKManager.getInstance().enableBridgeModeWithBridgeAppIP(bridgeIP);
-            if (!TextUtils.isEmpty(bridgeIP)) {
-                Toast.makeText(getApplicationContext(), "BridgeMode ON!\nIP: " + bridgeIP, Toast.LENGTH_LONG).show();
+    private DJISDKManager.SDKManagerCallback registrationCallback = new DJISDKManager.SDKManagerCallback() {
+        @Override
+        public void onRegister(DJIError error) {
+            isRegistrationInProgress.set(false);
+            if (error == DJISDKError.REGISTRATION_SUCCESS) {
+                DJISDKManager.getInstance().startConnectionToProduct();
+                toast("SDK registration succeeded!");
+
+                loginAccount();
+            } else {
+                toast("SDK registration failed, check network and retry!");
             }
         }
+
+        @Override
+        public void onProductChange(BaseProduct oldProduct, BaseProduct newProduct) {
+            if(newProduct != null) {
+                toast("Aircraft connected");
+                mAircraft = (Aircraft)newProduct;
+                mFlightController = mAircraft.getFlightController();
+                if(mFlightController != null) {
+                    mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
+                        @Override
+                        public void onReceive(byte[] bytes) {
+                            if(mocInteraction != null)
+                                mocInteraction.dataReceived(bytes);
+                        }
+                    });
+                }
+            } else {
+                toast("Aircraft disconnected");
+            }
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_mainfragment);
+
+        // Fragment
+        fragmentManager = getSupportFragmentManager();
+        dashboardFragment = new DashboardFragment();
+        pilotFragment = new PilotFragment();
+        mocFragment = new MocFragment();
+
+        fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
+
+        checkAndRequestPermissions();
     }
 
     @Override
@@ -186,17 +126,67 @@ public class MainFragmentActivity extends FragmentActivity implements View.OnCli
         super.onDestroy();
     }
 
+    @Override
+    public void handleBridgeIP(final String bridgeIP) {
+        DJISDKManager.getInstance().enableBridgeModeWithBridgeAppIP(bridgeIP);
+        if (!TextUtils.isEmpty(bridgeIP)) {
+            toast("BridgeMode ON!\nIP: " + bridgeIP);
+        }
+    }
+
+    @Override
+    public void changeFragment(fragments fragment) {
+        Fragment nextFragment = null;
+        switch (fragment) {
+            case dashboard:
+                nextFragment = dashboardFragment;
+                break;
+            case pilot:
+                nextFragment = pilotFragment;
+                break;
+            case moc:
+                nextFragment = mocFragment;
+                break;
+        }
+
+        if(nextFragment != null) {
+            fragmentManager.beginTransaction().replace(R.id.main_container_fragment, nextFragment).addToBackStack(fragment.toString()).commit();
+            mocInteraction = null;
+            try {
+                mocInteraction = (MocInteraction) nextFragment;
+            } catch (ClassCastException e) {
+               System.out.println(nextFragment.toString() + " must implement MocInteraction");
+            }
+        } else {
+            System.out.println("Fragment not found");
+        }
+    }
+
+    @Override
+    public void sendData(String data) {
+        if (mFlightController != null) {
+            mFlightController.sendDataToOnboardSDKDevice(data.getBytes(), new CommonCallbacks.CompletionCallback() {
+                @Override
+                public void onResult(DJIError djiError) {
+                    if(mocInteraction != null)
+                        mocInteraction.onResult(djiError);
+                }
+            });
+        } else {
+            toast("sendMocData error - No aircraft connected");
+        }
+    }
+
     private void loginAccount(){
         UserAccountManager.getInstance().logIntoDJIUserAccount(this,
                 new CommonCallbacks.CompletionCallbackWith<UserAccountState>() {
                     @Override
                     public void onSuccess(final UserAccountState userAccountState) {
-                        Toast.makeText(getApplicationContext(), "Login succeeded!", Toast.LENGTH_LONG).show();
-                        handleBridgeIPTextChange();
+                        toast("Login succeeded!");
                     }
                     @Override
                     public void onFailure(DJIError error) {
-                        Toast.makeText(getApplicationContext(), "Login failed!", Toast.LENGTH_LONG).show();
+                        toast("Login failed!");
                     }
                 });
     }
@@ -242,7 +232,7 @@ public class MainFragmentActivity extends FragmentActivity implements View.OnCli
         if (missingPermission.isEmpty()) {
             startSDKRegistration();
         } else {
-            Toast.makeText(getApplicationContext(), "Missing permissions!!!", Toast.LENGTH_LONG).show();
+            toast("Missing permissions!!!");
         }
     }
 
@@ -257,26 +247,8 @@ public class MainFragmentActivity extends FragmentActivity implements View.OnCli
         }
     }
 
-    @Override
-    public void onClick(View view) {
-        Class nextActivityClass;
-        Intent intent;
-        switch (view.getId()) {
-            case R.id.btn_pilot_interface:
-                nextActivityClass = PilotActivity.class;
-                intent = new Intent(this, nextActivityClass);
-                startActivity(intent);
-                break;
-            case R.id.btn_moc_interface:
-                nextActivityClass = MocActivity.class;
-                intent = new Intent(this, nextActivityClass);
-                startActivity(intent);
-                break;
-        }
-    }
-
-    public void toast(final String str)
+    public void toast(final String text)
     {
-        Toast.makeText( getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
     }
 }
