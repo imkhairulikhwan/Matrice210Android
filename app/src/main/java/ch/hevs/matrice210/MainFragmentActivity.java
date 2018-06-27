@@ -249,6 +249,7 @@ public class MainFragmentActivity extends FragmentActivity
 
     public void toast(final String text)
     {
+        System.out.println(text);
         Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
     }
 }

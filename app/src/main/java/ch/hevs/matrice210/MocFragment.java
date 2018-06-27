@@ -22,19 +22,34 @@ import dji.common.error.DJIError;
 public class MocFragment extends Fragment implements Observer, View.OnClickListener, MocInteraction {
     // UI Elements
     private Button btn_send, btn_led;
-    private TextView txtView_console;
-    EditText editTxt_command;
+    private TextView txtView_console, txtView_rate, txtView_counter;
+    private int receivedFrames;
+    private EditText editTxt_command;
 
     // Listener
-    MocInteractionListener mocIListener;
+    private MocInteractionListener mocIListener;
+
+    private long lastTime;
 
     @Override
     public void dataReceived(byte[] bytes) {
+        /*/
         StringBuilder buffer = new StringBuilder();
         for (byte b : bytes) {
-            buffer.append((char) b);
+            buffer.append((int) b);
         }
-        log("Data received (" + buffer.length() + ") : " + buffer.toString(), "MOC");
+        System.out.println("Data received (" + bytes.length + ") : " + buffer.toString());
+        //*/
+        receivedFrames++;
+        if(receivedFrames % 10 == 0) {
+            long currentTime = System.currentTimeMillis();
+            long diffTime = currentTime - lastTime;
+            // 10 frames received in diffTime ms
+            //long rate = 10 * 1000 / diffTime;
+            setRate(diffTime);
+            lastTime = System.currentTimeMillis();
+        }
+        setCounter(receivedFrames);
     }
 
     @Override
@@ -52,7 +67,7 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        receivedFrames = 0;
     }
 
     @Override
@@ -63,6 +78,8 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
         btn_led = (Button) view.findViewById(R.id.btn_led);
         btn_led.setOnClickListener(this);
         txtView_console = (TextView) view.findViewById(R.id.txtView_console);
+        txtView_counter = (TextView) view.findViewById(R.id.txtView_counter);
+        txtView_rate = (TextView) view.findViewById(R.id.txtView_rate);
         editTxt_command = (EditText) view.findViewById(R.id.editTxt_command);
         return view;
     }
@@ -118,6 +135,28 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
             }
         });
     }
+    public void setCounter(final int counter) {
+        // runOnUiThread used to avoid errors
+        // "Only the original thread that created a view hierarchy can touch its views"
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtView_counter.setText("Counter : " + counter);
+            }
+        });
+    }
+
+    public void setRate(final long rate) {
+        // runOnUiThread used to avoid errors
+        // "Only the original thread that created a view hierarchy can touch its views"
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtView_rate.setText("Rate : " + rate);
+            }
+        });
+    }
+
 
     @Override
     public void onClick(View view) {
@@ -127,7 +166,10 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                 sendMocData(command);
                 break;
             case R.id.btn_led:
-                sendMocData("#1");
+                //sendMocData("#1");
+                log("received frames counter reset");
+                receivedFrames = 0;
+                setCounter(0);
                 break;
         }
     }
