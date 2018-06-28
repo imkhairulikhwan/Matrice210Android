@@ -23,17 +23,6 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <Button
-            android:id="@+id/btn_led"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:padding="14dp"
-            android:textAllCaps="false"
-            android:textColor="@color/background_blue"
-            android:textSize="14sp"
-            android:text="@string/moc_toggle_led" />
-
 
         <TableRow
             android:layout_width="match_parent"
@@ -60,6 +49,66 @@
             android:textSize="14sp"
             android:text="@string/moc_send_command" />
 
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:id="@+id/editTxt_length"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:layout_width="0dp"
+                android:padding="14dp"
+                android:text="@string/moc_default_length"
+                android:inputType="numberDecimal" />
+
+            <EditText
+                android:id="@+id/editTxt_delay"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:layout_width="0dp"
+                android:padding="14dp"
+                android:text="@string/moc_default_speed"
+                android:inputType="numberDecimal" />
+
+        </LinearLayout>
+
+
+        <Button
+            android:id="@+id/btn_send_test"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/moc_send_test"
+            android:scrollbars="vertical" />
+
+        <Button
+            android:id="@+id/btn_ack_test"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/moc_ack_test" />
+
+        <Button
+            android:id="@+id/btn_reset_coutner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/moc_reset_counter" />
         <TextView
             android:id="@+id/txtView_counter"
             android:layout_width="wrap_content"

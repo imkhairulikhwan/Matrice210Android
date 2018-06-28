@@ -164,8 +164,13 @@ public class MainFragmentActivity extends FragmentActivity
 
     @Override
     public void sendData(String data) {
+        sendData(data.getBytes());
+    }
+
+    @Override
+    public void sendData(byte[] data) {
         if (mFlightController != null) {
-            mFlightController.sendDataToOnboardSDKDevice(data.getBytes(), new CommonCallbacks.CompletionCallback() {
+            mFlightController.sendDataToOnboardSDKDevice(data, new CommonCallbacks.CompletionCallback() {
                 @Override
                 public void onResult(DJIError djiError) {
                     if(mocInteraction != null)

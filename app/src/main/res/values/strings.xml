@@ -7,4 +7,9 @@
     <string name="moc_toggle_led">Toggle LED</string>
     <string name="moc_default_command">Hello world</string>
     <string name="wsbridge_ip">192.168.43.1</string>
+    <string name="moc_default_length">100</string>
+    <string name="moc_default_speed">25</string>
+    <string name="moc_reset_counter">Reset counter</string>
+    <string name="moc_ack_test">Launch ack test</string>
+    <string name="moc_send_test">Launch send test</string>
 </resources>

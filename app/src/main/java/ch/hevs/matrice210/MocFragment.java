@@ -21,36 +21,63 @@ import dji.common.error.DJIError;
 
 public class MocFragment extends Fragment implements Observer, View.OnClickListener, MocInteraction {
     // UI Elements
-    private Button btn_send, btn_led;
+    private Button btn_send, btn_reset_counter, btn_ack_test, btn_send_test;
     private TextView txtView_console, txtView_rate, txtView_counter;
     private int receivedFrames;
-    private EditText editTxt_command;
+    private EditText editTxt_command, editTxt_length, editTxt_delay;
 
     // Listener
     private MocInteractionListener mocIListener;
 
     private long lastTime;
 
+    enum debugMode {
+        loopFrame,
+        receiveFrames
+    }
+    private debugMode mode;
+
     @Override
     public void dataReceived(byte[] bytes) {
-        /*/
-        StringBuilder buffer = new StringBuilder();
-        for (byte b : bytes) {
-            buffer.append((int) b);
+
+        if(mode == debugMode.loopFrame) {
+            if (bytes.length == 100) {
+                boolean sendData = true;
+                byte index = bytes[0];
+                log("Data received (" + bytes.length + ") : " + index, "MOC");
+                if (index == 0) {
+                    log("Start of test");
+                    lastTime = System.currentTimeMillis();
+                } else if (index == 100) {
+                    sendData = false;
+                    long diffTime = System.currentTimeMillis() - lastTime;
+                    log("End of test");
+                    setRate(diffTime);
+                    mode = debugMode.receiveFrames;
+                }
+
+                if (sendData) {
+                    index++;
+                    byte[] b = new byte[2];
+                    b[0] = '#';
+                    b[1] = index;
+                    sendMocData(b);
+                }
+            }
+        } else if (mode == debugMode.receiveFrames) {
+            receivedFrames++;
+            if (receivedFrames % 10 == 0) {
+                long currentTime = System.currentTimeMillis();
+                long diffTime = currentTime - lastTime;
+                // 10 frames received in diffTime ms
+                //long rate = 10 * 1000 / diffTime;
+                setRate(diffTime);
+                lastTime = System.currentTimeMillis();
+            }
+            setCounter(receivedFrames);
         }
-        System.out.println("Data received (" + bytes.length + ") : " + buffer.toString());
-        //*/
-        receivedFrames++;
-        if(receivedFrames % 10 == 0) {
-            long currentTime = System.currentTimeMillis();
-            long diffTime = currentTime - lastTime;
-            // 10 frames received in diffTime ms
-            //long rate = 10 * 1000 / diffTime;
-            setRate(diffTime);
-            lastTime = System.currentTimeMillis();
-        }
-        setCounter(receivedFrames);
     }
+
 
     @Override
     public void onResult(DJIError djiError) {
@@ -62,12 +89,14 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
 
     public interface MocInteractionListener {
         void sendData(final String data);
+        void sendData(final byte[] data);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         receivedFrames = 0;
+        mode = debugMode.receiveFrames;
     }
 
     @Override
@@ -75,12 +104,18 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
         View view = inflater.inflate(R.layout.moc_layout, container, false);
         btn_send = (Button) view.findViewById(R.id.btn_send);
         btn_send.setOnClickListener(this);
-        btn_led = (Button) view.findViewById(R.id.btn_led);
-        btn_led.setOnClickListener(this);
+        btn_send_test = (Button) view.findViewById(R.id.btn_send_test);
+        btn_send_test.setOnClickListener(this);
+        btn_ack_test = (Button) view.findViewById(R.id.btn_ack_test);
+        btn_ack_test.setOnClickListener(this);
+        btn_reset_counter = (Button) view.findViewById(R.id.btn_reset_coutner);
+        btn_reset_counter.setOnClickListener(this);
         txtView_console = (TextView) view.findViewById(R.id.txtView_console);
         txtView_counter = (TextView) view.findViewById(R.id.txtView_counter);
         txtView_rate = (TextView) view.findViewById(R.id.txtView_rate);
         editTxt_command = (EditText) view.findViewById(R.id.editTxt_command);
+        editTxt_length = (EditText) view.findViewById(R.id.editTxt_length);
+        editTxt_delay = (EditText) view.findViewById(R.id.editTxt_delay);
         return view;
     }
 
@@ -118,6 +153,12 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
         log("Send data (" + data.length() + ") : " + data, "MOC");
         mocIListener.sendData(data);
     }
+
+    public void sendMocData(final byte[] data) {
+        log("Send data (" + data.length + ") : " + data, "MOC");
+        mocIListener.sendData(data);
+    }
+
     public void log(final String log) {
         log(log, "LOG");
     }
@@ -165,11 +206,50 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                 final String command = editTxt_command.getText().toString();
                 sendMocData(command);
                 break;
-            case R.id.btn_led:
-                //sendMocData("#1");
-                log("received frames counter reset");
+            case R.id.btn_reset_coutner:
+                mode = debugMode.receiveFrames;
+                log("Received frames counter reset");
                 receivedFrames = 0;
                 setCounter(0);
+                break;
+            case R.id.btn_ack_test:
+                mode = debugMode.loopFrame;
+                byte[] b = new byte[2];
+                b[0] = '#';
+                b[1] = 0;
+                sendMocData(b);
+                break;
+            case R.id.btn_send_test:
+                int delay = Integer.parseInt(editTxt_delay.getText().toString());
+                int length = Integer.parseInt(editTxt_length.getText().toString());
+                if(length > 100)
+                    length = 100;
+
+                log("Up-test running : length = " + length + "bytes, delay = " + delay + " ms");
+
+                byte[] frame = new byte[length];
+                int framesToSend = 300;
+                byte n = 0;
+                while (true) {
+                    frame[(int)n] = n;
+                    n++;
+                    if (n == length) {
+                        break;
+                    }
+                }
+                try {
+                    while(framesToSend != 0) {
+                        sendMocData(frame);
+                        log("Frame " + (300-framesToSend) + " sent");
+                        framesToSend--;
+                        Thread.sleep(delay);
+                    }
+                    log("Up-test ended : 300 frames sent");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+
                 break;
         }
     }
