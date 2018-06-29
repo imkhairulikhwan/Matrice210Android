@@ -13,7 +13,8 @@
             android:id="@+id/txtView_console"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:scrollbars="vertical" />
 
     </LinearLayout>
 
@@ -77,7 +78,7 @@
 
 
         <Button
-            android:id="@+id/btn_send_test"
+            android:id="@+id/btn_up_test"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
@@ -85,11 +86,10 @@
             android:textAllCaps="false"
             android:textColor="@color/background_blue"
             android:textSize="14sp"
-            android:text="@string/moc_send_test"
-            android:scrollbars="vertical" />
+            android:text="@string/moc_up_test" />
 
         <Button
-            android:id="@+id/btn_ack_test"
+            android:id="@+id/btn_ackUp_test"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
@@ -97,10 +97,11 @@
             android:textAllCaps="false"
             android:textColor="@color/background_blue"
             android:textSize="14sp"
-            android:text="@string/moc_ack_test" />
+            android:text="@string/moc_ackUp_test"
+            />
 
         <Button
-            android:id="@+id/btn_reset_coutner"
+            android:id="@+id/btn_reset_test_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="10dp"
@@ -114,15 +115,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Counter : " />
-
-        <TextView
-            android:id="@+id/txtView_rate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Raw : " />
-
+            android:text="..." />
 
     </TableLayout>
 

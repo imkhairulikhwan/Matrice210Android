@@ -3,6 +3,7 @@ package ch.hevs.matrice210;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.method.ScrollingMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,65 +20,234 @@ import java.util.Observer;
 import ch.hevs.matrice210.Interfaces.MocInteraction;
 import dji.common.error.DJIError;
 
+
 public class MocFragment extends Fragment implements Observer, View.OnClickListener, MocInteraction {
+    public static final char START_CHAR = '@';
+    public static final char END_CHAR = '#';
+
     // UI Elements
-    private Button btn_send, btn_reset_counter, btn_ack_test, btn_send_test;
-    private TextView txtView_console, txtView_rate, txtView_counter;
-    private int receivedFrames;
+    private TextView txtView_console, txtView_counter;
+    private long receivedBytes, receivedFrames;
     private EditText editTxt_command, editTxt_length, editTxt_delay;
 
     // Listener
     private MocInteractionListener mocIListener;
 
-    private long lastTime;
+    // Moc tests variables
+    private long ackCounter;
+    private long startTime;
+    private byte[] testFrame;
+    enum MocTestMode {
+        none(0),
+        down(1),
+        up(2),
+        ackUp(3),
+        ackDown(4);
 
-    enum debugMode {
-        loopFrame,
-        receiveFrames
+        private final int value;
+        MocTestMode(int value) {
+            this.value = value;
+        }
+
+        public byte getByteValue() {
+            return (byte)value;
+        }
+
+        public static MocTestMode convert(byte value) {
+            return MocTestMode.values()[value];
+        }
     }
-    private debugMode mode;
+    private MocTestMode testMode;
+    // Up test class
+    class UpTestParam  extends Thread {
+        private final static int frameToSend = 100;
+        private int delayMs, frameSent = 300;
+        byte[] frame;
+
+        UpTestParam(int length, int delayMs) {
+            frame = new byte[length];
+            byte n = 0;
+            while (true) {
+                frame[(int)n] = n;
+                n++;
+                if (n == length) {
+                    break;
+                }
+            }
+            this.delayMs = delayMs;
+        }
+
+        public void run() {
+            try {
+                startTime = System.currentTimeMillis();
+                frameSent = 0;
+                while(frameSent < frameToSend) {
+                    sendMocData(frame);
+                    receivedFrames++;
+                    setCounter(receivedFrames, 0);
+                    log("Frame " + frameSent + " sent");
+                    frameSent++;
+                    Thread.sleep(delayMs);
+                }
+                long diffTimeMs = System.currentTimeMillis() - startTime;
+                // Remove last delay
+                diffTimeMs -= delayMs;
+                // End of test
+                Thread.sleep(1000);
+                sendModeEndRequest(MocTestMode.up);
+                long bytesSent = frame.length * frameToSend;
+                log("Up test ended (length = " + frame.length + " bytes, delay = " + delayMs + " ms) : " + frameToSend + " frames sent (" + bytesSent + " Bytes) in " + diffTimeMs + " ms", "MOC");
+                double dataFlow = bytesSent * 1000 / diffTimeMs;
+                log("Data flow = " + dataFlow + " Bytes/s", "MOC");
+                testMode = MocTestMode.none;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    private UpTestParam upTestParam;
 
     @Override
     public void dataReceived(byte[] bytes) {
-
-        if(mode == debugMode.loopFrame) {
-            if (bytes.length == 100) {
-                boolean sendData = true;
-                byte index = bytes[0];
-                log("Data received (" + bytes.length + ") : " + index, "MOC");
-                if (index == 0) {
-                    log("Start of test");
-                    lastTime = System.currentTimeMillis();
-                } else if (index == 100) {
-                    sendData = false;
-                    long diffTime = System.currentTimeMillis() - lastTime;
-                    log("End of test");
-                    setRate(diffTime);
-                    mode = debugMode.receiveFrames;
+        switch (bytes[0]) {
+            // New test started
+            case START_CHAR:
+                switch (MocTestMode.convert(bytes[1])) {
+                    case down:
+                        testMode = MocTestMode.down;
+                        log("Down test launched", "MOC");
+                        resetDataCounter();
+                        startTime = System.currentTimeMillis();
+                        break;
+                    case up:
+                        testMode = MocTestMode.up;
+                        log("Up test running ...", "MOC");
+                        upTestParam.run();
+                        break;
+                    case ackUp:
+                        testMode = MocTestMode.ackUp;
+                        log("Ack up test launched", "MOC");
+                        resetDataCounter();
+                        byte[] b = new byte[2];
+                        b[0] = '-';
+                        b[1] = 0;
+                        sendMocData(b);
+                        break;
+                    case ackDown:
+                        log("Ack down test launched");
+                        testMode = MocTestMode.ackDown;
+                        sendModeStartRequest(MocTestMode.ackDown);
+                        ackCounter = 0;
+                        break;
+                    default:
+                        testMode = MocTestMode.none;
+                        log("Unknown test launched", "MOC");
+                        break;
                 }
+                break;
+            // Test ended
+            case END_CHAR:
+                switch (MocTestMode.convert(bytes[1])) {
+                    case none:
+                        log("Reset test status", "MOC", true);
+                        resetDataCounter();
+                        testMode = MocTestMode.none;
+                        break;
+                    case up:
+                        log("Up test ended", "MOC");
+                        testMode = MocTestMode.none;
+                        break;
+                    case down:
+                        long diffTime = System.currentTimeMillis() - startTime - 500;   // 500ms before send of # end character
+                        log("Down test ended : " + receivedFrames + " frames received (" + receivedBytes + " Bytes) in " + diffTime + " ms", "MOC");
+                        double dataFlow = receivedBytes * 1000 / diffTime;
+                        log("Data flow = " + dataFlow + " Bytes/s", "MOC");
+                        testMode = MocTestMode.none;
+                        break;
+                    case ackUp:
+                        // No end request are supposed to be received from aircraft
+                        log("Ack up test ended ??", "MOC");
+                        testMode = MocTestMode.none;
+                        break;
+                    case ackDown:
+                        log("Ack down test ended : " + ackCounter + " frames sent", "MOC");
+                        testMode = MocTestMode.none;
+                        break;
+                    default:
+                        log("Unknown test ended", "MOC");
+                        resetDataCounter();
+                        testMode = MocTestMode.none;
+                        break;
 
-                if (sendData) {
-                    index++;
-                    byte[] b = new byte[2];
-                    b[0] = '#';
-                    b[1] = index;
-                    sendMocData(b);
                 }
-            }
-        } else if (mode == debugMode.receiveFrames) {
-            receivedFrames++;
-            if (receivedFrames % 10 == 0) {
-                long currentTime = System.currentTimeMillis();
-                long diffTime = currentTime - lastTime;
-                // 10 frames received in diffTime ms
-                //long rate = 10 * 1000 / diffTime;
-                setRate(diffTime);
-                lastTime = System.currentTimeMillis();
-            }
-            setCounter(receivedFrames);
+                break;
+             // Data received
+            default:
+                switch (testMode) {
+                    case down:
+                        log("Down test : Data received (" + bytes.length + ") : " + receivedFrames, "MOC");
+                        receivedBytes += bytes.length;
+                        receivedFrames++;
+                        setCounter(receivedFrames, receivedBytes);
+                        break;
+                    case up:
+
+                        break;
+                    case ackUp:
+                        boolean sendData = true;
+                        byte index = bytes[1];
+                        log("Ack up test: Data received (" + bytes.length + ") : " + index, "MOC");
+                        receivedBytes += bytes.length;
+                        receivedFrames++;
+                        setCounter(receivedFrames, receivedBytes);
+
+                        if (index == 0) {
+                            startTime = System.currentTimeMillis();
+                        } else if (index == 99) {  // 100 frames received
+                            sendModeEndRequest(MocTestMode.ackUp);
+                            sendData = false;
+                            long diffTime = System.currentTimeMillis() - startTime;
+                            log("Ack up test ended : " + receivedFrames + " frames received (" + receivedBytes + " Bytes) in " + diffTime + " ms", "MOC");
+                            double dataFlow = receivedBytes * 1000 / diffTime;
+                            log("Ack up flow = " + dataFlow + " Bytes/s", "MOC");
+                            testMode = MocTestMode.none;
+                        }
+
+                        // Send next frame request
+                        if (sendData) {
+                            index++;
+                            byte[] b = new byte[2];
+                            b[0] = '-'; // random char to avoid START_CHAR or END_CHAR
+                            b[1] = index;
+                            log("Ack up test : Send request " + index, "MOC");
+                            sendMocData(b);
+                        }
+                        break;
+                    case ackDown:
+                        // Verify that requested frame is correctly numbered
+                        if(bytes[1] == ackCounter) {
+                            testFrame[0] = '-'; // random char to avoid START_CHAR or END_CHAR
+                            testFrame[1] = bytes[1];
+                            log("Ack down test : Send frame " + bytes[1], "MOC");
+                            sendMocData(testFrame);
+                            ackCounter++;
+                        } else {
+                            log("Ack down test : Frame counter error");
+                            testMode = MocTestMode.none;
+                        }
+                        break;
+                    case none:
+                        // Data received displayed as string
+                        StringBuilder buffer = new StringBuilder();
+                        for (byte b : bytes) {
+                             buffer.append((char) b);
+                        }
+                        log("Data received (" + bytes.length + ") : " + buffer.toString(), "MOC");
+                        break;
+                }
+                break;
         }
     }
-
 
     @Override
     public void onResult(DJIError djiError) {
@@ -96,23 +266,31 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         receivedFrames = 0;
-        mode = debugMode.receiveFrames;
+        testMode = MocTestMode.none;
+        // Fill test frame with numbers
+        testFrame = new byte[100];
+        byte n = 0;
+        while (n < testFrame.length) {
+            testFrame[(int)n] = n;
+            n++;
+        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.moc_layout, container, false);
+        Button btn_send, btn_reset_test_mode, btn_ack_test, btn_send_test;
         btn_send = (Button) view.findViewById(R.id.btn_send);
         btn_send.setOnClickListener(this);
-        btn_send_test = (Button) view.findViewById(R.id.btn_send_test);
+        btn_send_test = (Button) view.findViewById(R.id.btn_up_test);
         btn_send_test.setOnClickListener(this);
-        btn_ack_test = (Button) view.findViewById(R.id.btn_ack_test);
+        btn_ack_test = (Button) view.findViewById(R.id.btn_ackUp_test);
         btn_ack_test.setOnClickListener(this);
-        btn_reset_counter = (Button) view.findViewById(R.id.btn_reset_coutner);
-        btn_reset_counter.setOnClickListener(this);
+        btn_reset_test_mode = (Button) view.findViewById(R.id.btn_reset_test_mode);
+        btn_reset_test_mode.setOnClickListener(this);
         txtView_console = (TextView) view.findViewById(R.id.txtView_console);
+        txtView_console.setMovementMethod(new ScrollingMovementMethod());
         txtView_counter = (TextView) view.findViewById(R.id.txtView_counter);
-        txtView_rate = (TextView) view.findViewById(R.id.txtView_rate);
         editTxt_command = (EditText) view.findViewById(R.id.editTxt_command);
         editTxt_length = (EditText) view.findViewById(R.id.editTxt_length);
         editTxt_delay = (EditText) view.findViewById(R.id.editTxt_delay);
@@ -149,6 +327,28 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
         }
     }
 
+    private void resetDataCounter() {
+        receivedFrames = 0;
+        receivedBytes = 0;
+        setCounter(receivedFrames, receivedBytes);
+    }
+
+    public void sendModeStartRequest(MocTestMode testMode) {
+        sendModeRequest(START_CHAR, testMode);
+
+    }
+
+    public void sendModeEndRequest(MocTestMode testMode) {
+        sendModeRequest(END_CHAR, testMode);
+    }
+
+    public void sendModeRequest(char operation, MocTestMode testMode) {
+        byte[] b = new byte[2];
+        b[0] = (byte)operation;
+        b[1] = testMode.getByteValue();
+        sendMocData(b);
+    }
+
     public void sendMocData(final String data) {
         log("Send data (" + data.length() + ") : " + data, "MOC");
         mocIListener.sendData(data);
@@ -159,45 +359,43 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
         mocIListener.sendData(data);
     }
 
+    public void setCounter(final long frames, final long bytes) {
+        // runOnUiThread used to avoid errors
+        // "Only the original thread that created a view hierarchy can touch its views"
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtView_counter.setText("Data received : " + frames + " frames, " + bytes + "  bytes");
+            }
+        });
+    }
+
     public void log(final String log) {
         log(log, "LOG");
     }
 
     public void log(final String log, final String prefix) {
+        log(log, prefix, false);
+    }
+
+    public void log(final String log, final String prefix, final boolean clear) {
         // runOnUiThread used to avoid errors
         // "Only the original thread that created a view hierarchy can touch its views"
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                DateFormat df = new SimpleDateFormat("[HH:mm:ss]");
+
+                DateFormat df = new SimpleDateFormat("[HH:mm:ss:SSS]");
                 String time = df.format(Calendar.getInstance().getTime());
                 String line = time + " - " + prefix + " - " + log;
-                txtView_console.setText(line.concat("\n").concat(txtView_console.getText().toString()));
+                if(clear) {
+                    txtView_console.setText(line);
+                } else {
+                    txtView_console.setText(line.concat("\n").concat(txtView_console.getText().toString()));
+                }
             }
         });
     }
-    public void setCounter(final int counter) {
-        // runOnUiThread used to avoid errors
-        // "Only the original thread that created a view hierarchy can touch its views"
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                txtView_counter.setText("Counter : " + counter);
-            }
-        });
-    }
-
-    public void setRate(final long rate) {
-        // runOnUiThread used to avoid errors
-        // "Only the original thread that created a view hierarchy can touch its views"
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                txtView_rate.setText("Rate : " + rate);
-            }
-        });
-    }
-
 
     @Override
     public void onClick(View view) {
@@ -206,50 +404,26 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                 final String command = editTxt_command.getText().toString();
                 sendMocData(command);
                 break;
-            case R.id.btn_reset_coutner:
-                mode = debugMode.receiveFrames;
-                log("Received frames counter reset");
-                receivedFrames = 0;
-                setCounter(0);
+            case R.id.btn_reset_test_mode:
+                testMode = MocTestMode.none;
+                sendModeEndRequest(MocTestMode.none);
                 break;
-            case R.id.btn_ack_test:
-                mode = debugMode.loopFrame;
-                byte[] b = new byte[2];
-                b[0] = '#';
-                b[1] = 0;
-                sendMocData(b);
+            case R.id.btn_ackUp_test:
+                log("Ack up test initialization", "MOC");
+                sendModeStartRequest(MocTestMode.ackUp);
                 break;
-            case R.id.btn_send_test:
+            case R.id.btn_up_test:
+                // Get parameters
                 int delay = Integer.parseInt(editTxt_delay.getText().toString());
                 int length = Integer.parseInt(editTxt_length.getText().toString());
+                // Max frame length
                 if(length > 100)
                     length = 100;
 
-                log("Up-test running : length = " + length + "bytes, delay = " + delay + " ms");
-
-                byte[] frame = new byte[length];
-                int framesToSend = 300;
-                byte n = 0;
-                while (true) {
-                    frame[(int)n] = n;
-                    n++;
-                    if (n == length) {
-                        break;
-                    }
-                }
-                try {
-                    while(framesToSend != 0) {
-                        sendMocData(frame);
-                        log("Frame " + (300-framesToSend) + " sent");
-                        framesToSend--;
-                        Thread.sleep(delay);
-                    }
-                    log("Up-test ended : 300 frames sent");
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-
+                // Send initializing command to ground station
+                log("Up test initializing : length = " + length + " bytes, delay = " + delay + " ms ...", "MOC");
+                upTestParam = new UpTestParam(length, delay);
+                sendModeStartRequest(MocTestMode.up);
                 break;
         }
     }

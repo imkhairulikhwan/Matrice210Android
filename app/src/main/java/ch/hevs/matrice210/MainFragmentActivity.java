@@ -1,6 +1,7 @@
 package ch.hevs.matrice210;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -254,7 +255,12 @@ public class MainFragmentActivity extends FragmentActivity
 
     public void toast(final String text)
     {
-        System.out.println(text);
-        Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+        ((Activity)this).runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println(text);
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

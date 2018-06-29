@@ -5,11 +5,11 @@
     <string name="sdk_version">Version: %1$s</string>
     <string name="moc_send_command">Send command</string>
     <string name="moc_toggle_led">Toggle LED</string>
-    <string name="moc_default_command">Hello world</string>
+    <string name="moc_default_command">Hello world from Android</string>
     <string name="wsbridge_ip">192.168.43.1</string>
     <string name="moc_default_length">100</string>
-    <string name="moc_default_speed">25</string>
-    <string name="moc_reset_counter">Reset counter</string>
-    <string name="moc_ack_test">Launch ack test</string>
-    <string name="moc_send_test">Launch send test</string>
+    <string name="moc_default_speed">80</string>
+    <string name="moc_reset_counter">Reset test mode</string>
+    <string name="moc_ackUp_test">Launch ack up test</string>
+    <string name="moc_up_test">Launch up test</string>
 </resources>
