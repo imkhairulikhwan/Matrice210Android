@@ -58,14 +58,14 @@ public class PilotActivity extends Activity {
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
         //mapWidget.onSaveInstanceState(outState);
+        super.onSaveInstanceState(outState);
     }
 
     @Override
     public void onLowMemory() {
-        super.onLowMemory();
         //mapWidget.onLowMemory();
+        super.onLowMemory();
     }
 }
 

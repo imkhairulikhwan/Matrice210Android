@@ -2,6 +2,7 @@ package ch.hevs.matrice210;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -116,6 +117,7 @@ public class MainFragmentActivity extends FragmentActivity
         fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
 
         checkAndRequestPermissions();
+        //*/
     }
 
     @Override
@@ -156,10 +158,10 @@ public class MainFragmentActivity extends FragmentActivity
             try {
                 mocInteraction = (MocInteraction) nextFragment;
             } catch (ClassCastException e) {
-               System.out.println(nextFragment.toString() + " must implement MocInteraction");
+               System.err.println(nextFragment.toString() + " must implement MocInteraction");
             }
         } else {
-            System.out.println("Fragment not found");
+            System.err.println("Fragment not found");
         }
     }
 

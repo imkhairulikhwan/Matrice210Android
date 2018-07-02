@@ -2,7 +2,6 @@
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:background">@color/background_blue</item>
         <item name="android:textColor">@color/light_gray</item>
         <item name="android:textColorPrimary">@color/medium_blue</item>
         <item name="android:textColorSecondary">@color/light_gray</item>

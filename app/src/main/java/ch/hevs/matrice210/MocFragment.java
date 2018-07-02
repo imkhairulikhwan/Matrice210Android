@@ -86,6 +86,7 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
         }
 
         public void run() {
+            // This test is non-functional. Data are received two times ?!
             try {
                 startTime = System.currentTimeMillis();
                 frameSent = 0;
