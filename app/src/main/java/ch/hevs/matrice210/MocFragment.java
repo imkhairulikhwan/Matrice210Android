@@ -37,6 +37,11 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
     private long ackCounter;
     private long startTime;
     private byte[] testFrame;
+    // 4 existing test modes
+    // down     : launched by M210, aircraft send 300 frames of 1-100 bytes each x ms, x is chosen on launch
+    // up       : launched on Android, ground station send 100 frames of 1-100 bytes x ms, x is chosen on launch
+    // ack up   : launched on Android, ground station ask numbered frames and aircraft send 100 bytes as ack. 100 frames are asked
+    // ack down :launched on M210, aircraft ask numbered frames and ground station send 100 bytes as ack. 100 frames are asked
     enum MocTestMode {
         none(0),
         down(1),
@@ -59,14 +64,17 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
     }
     private MocTestMode testMode;
     // Up test class
-    class UpTestParam  extends Thread {
+    class UpTestParam extends Thread {
         private final static int frameToSend = 100;
         private int delayMs, frameSent = 300;
         byte[] frame;
 
         UpTestParam(int length, int delayMs) {
+            if(length > 100)
+                length = 100;
             frame = new byte[length];
-            byte n = 0;
+            frame[0] = '-'; // '-' to avoid START_CHAR and ENC_CHAR
+            byte n = 1;
             while (true) {
                 frame[(int)n] = n;
                 n++;
@@ -82,9 +90,8 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                 startTime = System.currentTimeMillis();
                 frameSent = 0;
                 while(frameSent < frameToSend) {
+                    frame[1] = (byte)frameSent;
                     sendMocData(frame);
-                    receivedFrames++;
-                    setCounter(receivedFrames, 0);
                     log("Frame " + frameSent + " sent");
                     frameSent++;
                     Thread.sleep(delayMs);
@@ -129,15 +136,16 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                         log("Ack up test launched", "MOC");
                         resetDataCounter();
                         byte[] b = new byte[2];
-                        b[0] = '-';
+                        b[0] = '-'; // '-' to avoid START_CHAR or END_CHAR
                         b[1] = 0;
+                        startTime = System.currentTimeMillis();
                         sendMocData(b);
                         break;
                     case ackDown:
                         log("Ack down test launched");
                         testMode = MocTestMode.ackDown;
-                        sendModeStartRequest(MocTestMode.ackDown);
                         ackCounter = 0;
+                        sendModeStartRequest(MocTestMode.ackDown);
                         break;
                     default:
                         testMode = MocTestMode.none;
@@ -148,20 +156,16 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
             // Test ended
             case END_CHAR:
                 switch (MocTestMode.convert(bytes[1])) {
-                    case none:
-                        log("Reset test status", "MOC", true);
-                        resetDataCounter();
+                    case down:
+                        long diffTime = System.currentTimeMillis() - startTime - 1500;   // 1000ms before send of first frame + 500ms before send of # end character
+                        // last send delay is not subtracted !
+                        log("Down test ended : " + receivedFrames + " frames received (" + receivedBytes + " Bytes) in " + diffTime + " ms", "MOC");
+                        double dataFlow = receivedBytes * 1000 / diffTime;
+                        log("Data flow = " + dataFlow + " Bytes/s", "MOC");
                         testMode = MocTestMode.none;
                         break;
                     case up:
                         log("Up test ended", "MOC");
-                        testMode = MocTestMode.none;
-                        break;
-                    case down:
-                        long diffTime = System.currentTimeMillis() - startTime - 500;   // 500ms before send of # end character
-                        log("Down test ended : " + receivedFrames + " frames received (" + receivedBytes + " Bytes) in " + diffTime + " ms", "MOC");
-                        double dataFlow = receivedBytes * 1000 / diffTime;
-                        log("Data flow = " + dataFlow + " Bytes/s", "MOC");
                         testMode = MocTestMode.none;
                         break;
                     case ackUp:
@@ -171,6 +175,11 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                         break;
                     case ackDown:
                         log("Ack down test ended : " + ackCounter + " frames sent", "MOC");
+                        testMode = MocTestMode.none;
+                        break;
+                    case none:
+                        log("Reset test status", "MOC", true);
+                        resetDataCounter();
                         testMode = MocTestMode.none;
                         break;
                     default:
@@ -185,36 +194,31 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
             default:
                 switch (testMode) {
                     case down:
-                        log("Down test : Data received (" + bytes.length + ") : " + receivedFrames, "MOC");
+                        // display byte as unsigned
+                        log("Down test : Data received (" + bytes.length + ") : " + (bytes[1] & 0xFF) + "/" + receivedFrames, "MOC");
                         receivedBytes += bytes.length;
                         receivedFrames++;
                         setCounter(receivedFrames, receivedBytes);
                         break;
                     case up:
-
+                        // No data are supposed to be received in this mode
                         break;
                     case ackUp:
-                        boolean sendData = true;
                         byte index = bytes[1];
                         log("Ack up test: Data received (" + bytes.length + ") : " + index, "MOC");
                         receivedBytes += bytes.length;
                         receivedFrames++;
                         setCounter(receivedFrames, receivedBytes);
 
-                        if (index == 0) {
-                            startTime = System.currentTimeMillis();
-                        } else if (index == 99) {  // 100 frames received
+                        if (index == 99) {  // 100 frames received
                             sendModeEndRequest(MocTestMode.ackUp);
-                            sendData = false;
                             long diffTime = System.currentTimeMillis() - startTime;
                             log("Ack up test ended : " + receivedFrames + " frames received (" + receivedBytes + " Bytes) in " + diffTime + " ms", "MOC");
                             double dataFlow = receivedBytes * 1000 / diffTime;
-                            log("Ack up flow = " + dataFlow + " Bytes/s", "MOC");
+                            log("Data flow = " + dataFlow + " Bytes/s", "MOC");
                             testMode = MocTestMode.none;
-                        }
-
-                        // Send next frame request
-                        if (sendData) {
+                        } else {
+                            // Send next frame request
                             index++;
                             byte[] b = new byte[2];
                             b[0] = '-'; // random char to avoid START_CHAR or END_CHAR
@@ -226,7 +230,7 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                     case ackDown:
                         // Verify that requested frame is correctly numbered
                         if(bytes[1] == ackCounter) {
-                            testFrame[0] = '-'; // random char to avoid START_CHAR or END_CHAR
+                            testFrame[0] = '-'; // '-' to avoid START_CHAR or END_CHAR
                             testFrame[1] = bytes[1];
                             log("Ack down test : Send frame " + bytes[1], "MOC");
                             sendMocData(testFrame);
@@ -420,7 +424,7 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
                 if(length > 100)
                     length = 100;
 
-                // Send initializing command to ground station
+                // Send initializing command to aircraft
                 log("Up test initializing : length = " + length + " bytes, delay = " + delay + " ms ...", "MOC");
                 upTestParam = new UpTestParam(length, delay);
                 sendModeStartRequest(MocTestMode.up);
