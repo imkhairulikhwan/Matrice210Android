@@ -12,4 +12,5 @@
     <string name="moc_reset_counter">Reset test mode</string>
     <string name="moc_ackUp_test">Launch ack up test</string>
     <string name="moc_up_test">Launch up test</string>
+    <string name="emergency_stop">Emergency stop</string>
 </resources>

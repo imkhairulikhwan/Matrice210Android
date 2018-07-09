@@ -2,7 +2,6 @@ package ch.hevs.matrice210;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -13,6 +12,8 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -31,13 +32,23 @@ import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
 
 public class MainFragmentActivity extends FragmentActivity
-        implements DashboardFragment.DashboardInteractionListener, MocFragment.MocInteractionListener {
+        implements DashboardFragment.DashboardInteractionListener, MocFragment.MocInteractionListener, View.OnClickListener {
     // Fragment
      private FragmentManager fragmentManager;
     private DashboardFragment dashboardFragment;
     private PilotFragment pilotFragment;
     private MocFragment mocFragment;
     private MocInteraction mocInteraction;
+
+    @Override
+    public void onClick(View view) {
+        switch(view.getId()) {
+            case R.id.btn_emergencyStop:
+                toast("Emergency stop");
+                sendData("#!");
+                break;
+        }
+    }
 
     public enum fragments {
         dashboard,
@@ -50,6 +61,7 @@ public class MainFragmentActivity extends FragmentActivity
     private Aircraft mAircraft = null;
     private FlightController mFlightController = null;
     private List<String> missingPermission = new ArrayList<>();
+    private Button btn_emergencyStop;
 
     private final int REQUEST_PERMISSION_CODE = 12345;
     private final String[] REQUIRED_PERMISSION_LIST = new String[] {
@@ -117,6 +129,9 @@ public class MainFragmentActivity extends FragmentActivity
         fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
 
         checkAndRequestPermissions();
+
+        btn_emergencyStop = (Button) findViewById(R.id.btn_emergencyStop);
+        btn_emergencyStop.setOnClickListener(this);
         //*/
     }
 
