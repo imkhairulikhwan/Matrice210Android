@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ch.hevs.matrice210.Interfaces.MocInteraction;
+import ch.hevs.matrice210.Interfaces.MocInteractionListener;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
 import dji.common.useraccount.UserAccountState;
@@ -32,36 +33,26 @@ import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
 
 public class MainFragmentActivity extends FragmentActivity
-        implements DashboardFragment.DashboardInteractionListener, MocFragment.MocInteractionListener, View.OnClickListener {
+        implements DashboardFragment.DashboardInteractionListener, MocInteractionListener, View.OnClickListener {
     // Fragment
      private FragmentManager fragmentManager;
     private DashboardFragment dashboardFragment;
     private PilotFragment pilotFragment;
     private MocFragment mocFragment;
+    private MissionFragment missionFragment;
     private MocInteraction mocInteraction;
-
-    @Override
-    public void onClick(View view) {
-        switch(view.getId()) {
-            case R.id.btn_emergencyStop:
-                toast("Emergency stop");
-                sendData("#!");
-                break;
-        }
-    }
 
     public enum fragments {
         dashboard,
         pilot,
-        moc
+        moc,
+        mission
     }
 
     // DJI
     private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
-    private Aircraft mAircraft = null;
     private FlightController mFlightController = null;
     private List<String> missingPermission = new ArrayList<>();
-    private Button btn_emergencyStop;
 
     private final int REQUEST_PERMISSION_CODE = 12345;
     private final String[] REQUIRED_PERMISSION_LIST = new String[] {
@@ -98,7 +89,7 @@ public class MainFragmentActivity extends FragmentActivity
         public void onProductChange(BaseProduct oldProduct, BaseProduct newProduct) {
             if(newProduct != null) {
                 toast("Aircraft connected");
-                mAircraft = (Aircraft)newProduct;
+                Aircraft mAircraft = (Aircraft)newProduct;
                 mFlightController = mAircraft.getFlightController();
                 if(mFlightController != null) {
                     mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
@@ -125,12 +116,13 @@ public class MainFragmentActivity extends FragmentActivity
         dashboardFragment = new DashboardFragment();
         pilotFragment = new PilotFragment();
         mocFragment = new MocFragment();
+        missionFragment = new MissionFragment();
 
         fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
 
         checkAndRequestPermissions();
 
-        btn_emergencyStop = (Button) findViewById(R.id.btn_emergencyStop);
+        Button btn_emergencyStop = (Button) findViewById(R.id.btn_emergencyStop);
         btn_emergencyStop.setOnClickListener(this);
         //*/
     }
@@ -164,6 +156,9 @@ public class MainFragmentActivity extends FragmentActivity
                 break;
             case moc:
                 nextFragment = mocFragment;
+                break;
+            case mission:
+                nextFragment = missionFragment;
                 break;
         }
 
@@ -279,5 +274,15 @@ public class MainFragmentActivity extends FragmentActivity
                 Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    @Override
+    public void onClick(View view) {
+        switch(view.getId()) {
+            case R.id.btn_emergencyStop:
+                toast("Emergency stop");
+                sendData(getString(R.string.moc_command_emergencyStop));
+                break;
+        }
     }
 }

@@ -45,6 +45,17 @@
         android:textColor="@color/background_blue"
         android:textSize="14sp" />
 
+    <Button
+        android:id="@+id/btn_mission_interface"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:padding="14dp"
+        android:text="@string/mission_interface"
+        android:textAllCaps="false"
+        android:textColor="@color/background_blue"
+        android:textSize="14sp" />
+
 
     <TableRow
         android:layout_weight="1"

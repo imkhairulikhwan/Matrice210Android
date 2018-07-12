@@ -18,6 +18,7 @@ import java.util.Observable;
 import java.util.Observer;
 
 import ch.hevs.matrice210.Interfaces.MocInteraction;
+import ch.hevs.matrice210.Interfaces.MocInteractionListener;
 import dji.common.error.DJIError;
 
 
@@ -260,11 +261,6 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
             log("Error " + djiError.toString(), "MOC");
         else
             log("Data sent successfully", "MOC");
-    }
-
-    public interface MocInteractionListener {
-        void sendData(final String data);
-        void sendData(final byte[] data);
     }
 
     @Override

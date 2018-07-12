@@ -1,16 +1,38 @@
 <resources>
     <string name="app_name">Matrice 210</string>
+    <!-- Dashboard -->
+    <string name="sdk_version">Version: %1$s</string>
+    <string name="wsbridge_ip">192.168.43.1</string>
+
+    <!-- Interfaces -->
     <string name="pilot_interface">Pilot interface</string>
     <string name="moc_interface">Mobile-Onboard communication interface</string>
-    <string name="sdk_version">Version: %1$s</string>
+    <string name="mission_interface">Mission interface</string>
+
+    <!-- Status bar -->
+    <string name="emergency_stop">Emergency stop</string>
+
+    <!-- Moc -->
     <string name="moc_send_command">Send command</string>
     <string name="moc_toggle_led">Toggle LED</string>
     <string name="moc_default_command">Hello world from Android</string>
-    <string name="wsbridge_ip">192.168.43.1</string>
     <string name="moc_default_length">100</string>
     <string name="moc_default_speed">80</string>
     <string name="moc_reset_counter">Reset test mode</string>
     <string name="moc_ackUp_test">Launch ack up test</string>
     <string name="moc_up_test">Launch up test</string>
-    <string name="emergency_stop">Emergency stop</string>
+
+    <!-- Mission -->
+    <string name="mission_send_command">Send command</string>
+    <string name="mission_default_x">2</string>
+    <string name="mission_default_y">5</string>
+    <string name="mission_default_z">0</string>
+    <string name="mission_default_yaw">45</string>
+    <string name="mission_position">Move from offset</string>
+    <string name="mission_velocity">Move with velocity</string>
+    <string name="mission_stop">Stop mission</string>
+    <string name="mission_release_emergency">Release emergency stop</string>
+    <string name="mission_takeoff">Take-off</string>
+    <string name="mission_landing">Landing</string>
+
 </resources>
