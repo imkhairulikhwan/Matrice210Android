@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/txtView_console"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:scrollbars="vertical" />
+
+    </LinearLayout>
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        </TableRow>
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btn_takeOff"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/mission_takeoff" />
+
+        <Button
+            android:id="@+id/btn_landing"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/mission_landing" />
+
+        <Button
+            android:id="@+id/btn_stopMission"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/mission_stop" />
+        </LinearLayout>
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:id="@+id/editTxt_x"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:layout_width="0dp"
+                android:padding="14dp"
+                android:text="@string/mission_default_x"
+                android:inputType="numberDecimal" />
+
+            <EditText
+                android:id="@+id/editTxt_y"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:layout_width="0dp"
+                android:padding="14dp"
+                android:text="@string/mission_default_y"
+                android:inputType="numberDecimal" />
+
+            <EditText
+                android:id="@+id/editTxt_z"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:layout_width="0dp"
+                android:padding="14dp"
+                android:text="@string/mission_default_z"
+                android:inputType="numberDecimal" />
+
+            <EditText
+                android:id="@+id/editTxt_yaw"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:layout_width="0dp"
+                android:padding="14dp"
+                android:text="@string/mission_default_yaw"
+                android:inputType="numberDecimal" />
+        </LinearLayout>
+
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/btn_position"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_position"
+                android:layout_width="0dp"/>
+
+
+            <Button
+                android:id="@+id/btn_velocity"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_velocity"
+                android:layout_width="0dp" />
+        </LinearLayout>
+
+
+        <Button
+            android:id="@+id/btn_releaseEmergency"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/mission_release_emergency" />
+
+
+
+    </TableLayout>
+
+
+</LinearLayout>
