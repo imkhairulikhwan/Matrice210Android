@@ -12,9 +12,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -110,7 +114,10 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     }
 
     public void sendMocData(final byte[] data) {
-        log("Send data (" + data.length + ") : " + data, "MOC");
+        if((char)data[0] == '#')
+            log("Send command (" + data.length + ") : " + data.toString(), "MOC");
+        else
+            log("Send data (" + data.length + ") : " + data.toString(), "MOC");
         mocIListener.sendData(data);
     }
 
@@ -147,21 +154,71 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
             case R.id.btn_stopMission:
                 sendMocData(getString(R.string.moc_command_stopMission));
                 break;
+                // todo replace redundant code by function
+                // todo enum mission kind
             case R.id.btn_position: {
-                Vector v = readVectorFromEditTexts(editTxt_x, editTxt_y, editTxt_z);
+                float x = readFloatFromEditText(editTxt_x);
+                float y = readFloatFromEditText(editTxt_y);
+                float z = readFloatFromEditText(editTxt_z);
                 float yaw = readFloatFromEditText(editTxt_yaw);
-                ByteBuffer buffer = ByteBuffer.allocate(32*5+2);
-                buffer.putChar('m');
-                buffer.putInt(1);
-                buffer.putFloat(v.getX());
-                buffer.putFloat(v.getY());
-                buffer.putFloat(v.getZ());
-                buffer.putFloat(yaw);
-                sendMocData(buffer.array());
+
+                byte[] xB = float2ByteArray(x);
+                byte[] yB = float2ByteArray(y);
+                byte[] zB = float2ByteArray(z);
+                byte[] yawB = float2ByteArray(yaw);
+
+                // Java and C++ float representation have inverse endianness
+                reverseEndianness(xB);
+                reverseEndianness(yB);
+                reverseEndianness(zB);
+                reverseEndianness(yawB);
+
+                // Frame
+                byte[] buffer = new byte[20];
+                buffer[0] = '#';    // command char
+                buffer[1] = 'm';    // mission
+                buffer[2] = 3;      // position offset mission
+                buffer[3] = 1;      // action
+                System.arraycopy(xB, 0, buffer, 4, 4);      // x
+                System.arraycopy(yB, 0, buffer, 8, 4);      // y
+                System.arraycopy(zB, 0, buffer, 12, 4);     // z
+                System.arraycopy(yawB, 0, buffer, 16, 4);   // yaw
+
+                log("Position offset mission : " + String.valueOf(x) + ", " + String.valueOf(y) + ", " + String.valueOf(z) + ", " + String.valueOf(yaw));
+                sendMocData(buffer);
             }
                 break;
-            case R.id.btn_velocity:
+            case R.id.btn_velocity: {
+                float x = readFloatFromEditText(editTxt_x);
+                float y = readFloatFromEditText(editTxt_y);
+                float z = readFloatFromEditText(editTxt_z);
+                float yaw = readFloatFromEditText(editTxt_yaw);
 
+                byte[] xB = float2ByteArray(x);
+                byte[] yB = float2ByteArray(y);
+                byte[] zB = float2ByteArray(z);
+                byte[] yawB = float2ByteArray(yaw);
+
+                // Java and C++ float representation have inverse endianness
+                reverseEndianness(xB);
+                reverseEndianness(yB);
+                reverseEndianness(zB);
+                reverseEndianness(yawB);
+
+                // Frame
+                byte[] buffer = new byte[20];
+                buffer[0] = '#';    // command char
+                buffer[1] = 'm';    // mission
+                buffer[2] = 1;      // velocity mission
+                buffer[3] = 1;      // action
+                System.arraycopy(xB, 0, buffer, 4, 4);      // x
+                System.arraycopy(yB, 0, buffer, 8, 4);      // y
+                System.arraycopy(zB, 0, buffer, 12, 4);     // z
+                System.arraycopy(yawB, 0, buffer, 16, 4);   // yaw
+
+                log("Velocity mission : " + String.valueOf(x) + ", " + String.valueOf(y) + ", " + String.valueOf(z) + ", " + String.valueOf(yaw));
+                sendMocData(buffer);
+            }
                 break;
             case R.id.btn_releaseEmergency:
                 sendMocData(getString(R.string.moc_command_emergencyRelease));
@@ -188,5 +245,21 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     private static byte [] float2ByteArray (float value)
     {
         return ByteBuffer.allocate(4).putFloat(value).array();
+    }
+
+    public static void reverseEndianness(byte[] array) {
+        if (null == array)
+            return;
+
+        int i = 0;
+        int j = array.length - 1;
+        byte tmp;
+        while (j > i) {
+            tmp = array[j];
+            array[j] = array[i];
+            array[i] = tmp;
+            j--;
+            i++;
+        }
     }
 }

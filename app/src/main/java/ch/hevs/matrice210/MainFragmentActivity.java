@@ -138,9 +138,13 @@ public class MainFragmentActivity extends FragmentActivity
 
     @Override
     public void handleBridgeIP(final String bridgeIP) {
-        DJISDKManager.getInstance().enableBridgeModeWithBridgeAppIP(bridgeIP);
-        if (!TextUtils.isEmpty(bridgeIP)) {
-            toast("BridgeMode ON!\nIP: " + bridgeIP);
+        try {
+            DJISDKManager.getInstance().enableBridgeModeWithBridgeAppIP(bridgeIP);
+            if (!TextUtils.isEmpty(bridgeIP)) {
+                toast("BridgeMode ON!\nIP: " + bridgeIP);
+            }
+        } catch (IllegalThreadStateException e) {
+            toast("BridgeMode failed, please restart");
         }
     }
 
