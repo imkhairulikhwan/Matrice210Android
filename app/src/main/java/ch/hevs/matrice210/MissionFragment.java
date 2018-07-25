@@ -1,5 +1,6 @@
 package ch.hevs.matrice210;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -7,18 +8,14 @@ import android.text.method.ScrollingMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -33,6 +30,35 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     // UI Elements
     private TextView txtView_console;
     private EditText editTxt_x, editTxt_y, editTxt_z, editTxt_yaw;
+
+    private enum M210_MissionType {
+        VELOCITY(1),   // 0
+        POSITION(2),
+        POSITION_OFFSET(3),
+        WAYPOINTS(4);
+
+        private final int value;
+        M210_MissionType(int value) {
+            this.value = value;
+        }
+
+        public int value() {
+            return value;
+        }
+    }
+
+    private enum M210_MissionAction {
+        START(1);      // 0
+
+        private final int value;
+        M210_MissionAction(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
 
     // Listener
     private MocInteractionListener mocIListener;
@@ -50,8 +76,6 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     public void onResult(DJIError djiError) {
         if (djiError != null)
             log("Error " + djiError.toString(), "MOC");
-        else
-            log("Data sent successfully", "MOC");
     }
 
     @Override
@@ -114,7 +138,7 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     }
 
     public void sendMocData(final byte[] data) {
-        if((char)data[0] == '#')
+        if((char)data[0] == getString(R.string.moc_command_stopMission).charAt(0))
             log("Send command (" + data.length + ") : " + data.toString(), "MOC");
         else
             log("Send data (" + data.length + ") : " + data.toString(), "MOC");
@@ -132,20 +156,24 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     public void log(final String log, final String prefix, final boolean clear) {
         // runOnUiThread used to avoid errors
         // "Only the original thread that created a view hierarchy can touch its views"
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
+        try{
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
 
-                DateFormat df = new SimpleDateFormat("[HH:mm:ss:SSS]");
-                String time = df.format(Calendar.getInstance().getTime());
-                String line = time + " - " + prefix + " - " + log;
-                if(clear) {
-                    txtView_console.setText(line);
-                } else {
-                    txtView_console.setText(line.concat("\n").concat(txtView_console.getText().toString()));
+                    DateFormat df = new SimpleDateFormat("[HH:mm:ss:SSS]");
+                    String time = df.format(Calendar.getInstance().getTime());
+                    String line = time + " - " + prefix + " - " + log;
+                    if(clear) {
+                        txtView_console.setText(line);
+                    } else {
+                        txtView_console.setText(line.concat("\n").concat(txtView_console.getText().toString()));
+                    }
                 }
-            }
-        });
+            });
+        } catch (NullPointerException e) {
+            // Avoid null pointer exception
+        }
     }
 
     @Override
@@ -155,7 +183,6 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 sendMocData(getString(R.string.moc_command_stopMission));
                 break;
                 // todo replace redundant code by function
-                // todo enum mission kind
             case R.id.btn_position: {
                 float x = readFloatFromEditText(editTxt_x);
                 float y = readFloatFromEditText(editTxt_y);
@@ -174,11 +201,12 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 reverseEndianness(yawB);
 
                 // Frame
+                String mission_command = getString(R.string.moc_command_mission);
                 byte[] buffer = new byte[20];
-                buffer[0] = '#';    // command char
-                buffer[1] = 'm';    // mission
-                buffer[2] = 3;      // position offset mission
-                buffer[3] = 1;      // action
+                buffer[0] = (byte)mission_command.charAt(0);    // command char
+                buffer[1] = (byte)mission_command.charAt(1);    // mission char
+                buffer[2] = (byte)M210_MissionType.POSITION_OFFSET.value();
+                buffer[3] = (byte)M210_MissionAction.START.getValue();
                 System.arraycopy(xB, 0, buffer, 4, 4);      // x
                 System.arraycopy(yB, 0, buffer, 8, 4);      // y
                 System.arraycopy(zB, 0, buffer, 12, 4);     // z
@@ -206,11 +234,12 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 reverseEndianness(yawB);
 
                 // Frame
+                String mission_command = getString(R.string.moc_command_mission);
                 byte[] buffer = new byte[20];
-                buffer[0] = '#';    // command char
-                buffer[1] = 'm';    // mission
-                buffer[2] = 1;      // velocity mission
-                buffer[3] = 1;      // action
+                buffer[0] = (byte)mission_command.charAt(0);    // command char
+                buffer[1] = (byte)mission_command.charAt(1);    // mission char
+                buffer[2] = (byte)M210_MissionType.VELOCITY.value();
+                buffer[3] = (byte)M210_MissionAction.START.getValue();
                 System.arraycopy(xB, 0, buffer, 4, 4);      // x
                 System.arraycopy(yB, 0, buffer, 8, 4);      // y
                 System.arraycopy(zB, 0, buffer, 12, 4);     // z
@@ -233,7 +262,13 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     }
 
     private float readFloatFromEditText(EditText editText) {
-        return Float.valueOf(editText.getText().toString());
+        float val = 0;
+        try {
+            val = Float.valueOf(editText.getText().toString());
+        } catch (Exception e){
+            toast("Invalid float !");
+        }
+        return val;
     }
 
     private Vector readVectorFromEditTexts(EditText x, EditText y, EditText z) {
@@ -261,5 +296,16 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
             j--;
             i++;
         }
+    }
+
+    public void toast(final String text)
+    {
+        (getActivity()).runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println(text);
+                Toast.makeText(getContext(), text, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
@@ -71,6 +72,8 @@ public class MainFragmentActivity extends FragmentActivity
             Manifest.permission.READ_PHONE_STATE,
     };
 
+    private Handler watchdogHandler;
+
     private DJISDKManager.SDKManagerCallback registrationCallback = new DJISDKManager.SDKManagerCallback() {
         @Override
         public void onRegister(DJIError error) {
@@ -99,9 +102,11 @@ public class MainFragmentActivity extends FragmentActivity
                                 mocInteraction.dataReceived(bytes);
                         }
                     });
+                    startWatchdog();
                 }
             } else {
                 toast("Aircraft disconnected");
+                stopWatchdog();
             }
         }
     };
@@ -124,6 +129,8 @@ public class MainFragmentActivity extends FragmentActivity
 
         Button btn_emergencyStop = (Button) findViewById(R.id.btn_emergencyStop);
         btn_emergencyStop.setOnClickListener(this);
+
+        watchdogHandler = new Handler();
         //*/
     }
 
@@ -211,6 +218,25 @@ public class MainFragmentActivity extends FragmentActivity
                         toast("Login failed!");
                     }
                 });
+    }
+
+    Runnable watchdog = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                sendData("#w");
+            } finally {
+                watchdogHandler.postDelayed(watchdog, 500);
+            }
+        }
+    };
+
+    void startWatchdog() {
+        watchdog.run();
+    }
+
+    void stopWatchdog() {
+        watchdogHandler.removeCallbacks(watchdog);
     }
 
     /**

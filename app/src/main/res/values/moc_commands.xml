@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE resources [
+    <!ENTITY command_char "#">
+]>
+
 <resources>
-    <string name="moc_command_emergencyStop">#e</string>
-    <string name="moc_command_emergencyRelease">#r</string>
-    <string name="moc_command_stopMission">#s</string>
-    <string name="moc_command_takeoff">#t</string>
-    <string name="moc_command_landing">#l</string>
-    <string name="moc_command_misssion">#m</string>
+    <string name="moc_command_char">&command_char;</string>
+    <string name="moc_command_emergencyStop">&command_char;e</string>
+    <string name="moc_command_emergencyRelease">&command_char;r</string>
+    <string name="moc_command_stopMission">&command_char;s</string>
+    <string name="moc_command_takeoff">&command_char;t</string>
+    <string name="moc_command_landing">&command_char;l</string>
+    <string name="moc_command_watchdog">&command_char;w</string>
+    <string name="moc_command_mission">&command_char;m</string>
 </resources>

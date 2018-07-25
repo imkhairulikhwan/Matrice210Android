@@ -259,8 +259,6 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
     public void onResult(DJIError djiError) {
         if (djiError != null)
             log("Error " + djiError.toString(), "MOC");
-        else
-            log("Data sent successfully", "MOC");
     }
 
     @Override
@@ -382,20 +380,24 @@ public class MocFragment extends Fragment implements Observer, View.OnClickListe
     public void log(final String log, final String prefix, final boolean clear) {
         // runOnUiThread used to avoid errors
         // "Only the original thread that created a view hierarchy can touch its views"
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
+        try {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
 
-                DateFormat df = new SimpleDateFormat("[HH:mm:ss:SSS]");
-                String time = df.format(Calendar.getInstance().getTime());
-                String line = time + " - " + prefix + " - " + log;
-                if(clear) {
-                    txtView_console.setText(line);
-                } else {
-                    txtView_console.setText(line.concat("\n").concat(txtView_console.getText().toString()));
+                    DateFormat df = new SimpleDateFormat("[HH:mm:ss:SSS]");
+                    String time = df.format(Calendar.getInstance().getTime());
+                    String line = time + " - " + prefix + " - " + log;
+                    if (clear) {
+                        txtView_console.setText(line);
+                    } else {
+                        txtView_console.setText(line.concat("\n").concat(txtView_console.getText().toString()));
+                    }
                 }
-            }
-        });
+            });
+        } catch (NullPointerException e) {
+            // Avoid null pointer exception
+        }
     }
 
     @Override

@@ -24,10 +24,10 @@
 
     <!-- Mission -->
     <string name="mission_send_command">Send command</string>
-    <string name="mission_default_x">2</string>
-    <string name="mission_default_y">5</string>
+    <string name="mission_default_x">0</string>
+    <string name="mission_default_y">0</string>
     <string name="mission_default_z">0</string>
-    <string name="mission_default_yaw">45</string>
+    <string name="mission_default_yaw">0</string>
     <string name="mission_position">Move from offset</string>
     <string name="mission_velocity">Move with velocity</string>
     <string name="mission_stop">Stop mission</string>
