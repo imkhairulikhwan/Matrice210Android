@@ -39,14 +39,12 @@ public class MainFragmentActivity extends FragmentActivity
      private FragmentManager fragmentManager;
     private DashboardFragment dashboardFragment;
     private PilotFragment pilotFragment;
-    private MocFragment mocFragment;
     private MissionFragment missionFragment;
     private MocInteraction mocInteraction;
 
     public enum fragments {
         dashboard,
         pilot,
-        moc,
         mission
     }
 
@@ -120,7 +118,6 @@ public class MainFragmentActivity extends FragmentActivity
         fragmentManager = getSupportFragmentManager();
         dashboardFragment = new DashboardFragment();
         pilotFragment = new PilotFragment();
-        mocFragment = new MocFragment();
         missionFragment = new MissionFragment();
 
         fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
@@ -164,9 +161,6 @@ public class MainFragmentActivity extends FragmentActivity
                 break;
             case pilot:
                 nextFragment = pilotFragment;
-                break;
-            case moc:
-                nextFragment = mocFragment;
                 break;
             case mission:
                 nextFragment = missionFragment;

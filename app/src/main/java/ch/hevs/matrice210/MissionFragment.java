@@ -1,6 +1,5 @@
 package ch.hevs.matrice210;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -16,6 +15,8 @@ import java.nio.ByteBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -29,10 +30,10 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
 
     // UI Elements
     private TextView txtView_console;
-    private EditText editTxt_x, editTxt_y, editTxt_z, editTxt_yaw;
+    private EditText editTxt_command, editTxt_x, editTxt_y, editTxt_z, editTxt_yaw;
 
     private enum M210_MissionType {
-        VELOCITY(1),   // 0
+        VELOCITY(1),
         POSITION(2),
         POSITION_OFFSET(3),
         WAYPOINTS(4);
@@ -48,7 +49,10 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     }
 
     private enum M210_MissionAction {
-        START(1);      // 0
+        START(1),
+        ADD(2),
+        RESET(3)
+        ;
 
         private final int value;
         M210_MissionAction(int value) {
@@ -69,7 +73,28 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
         for (byte b : bytes) {
             buffer.append((char) b);
         }
-        log("Data received (" + bytes.length + ") : " + buffer.toString(), "MOC");
+
+        if(bytes.length >= 2) {
+            // If data start with log char it is a log message
+            // byte[1] indicate log type
+            if (bytes[0] == getString(R.string.moc_log_char).charAt(0)) {
+                Map<Character, String> prefixMap = new HashMap<>();
+                prefixMap.put('S', "STATUS");
+                prefixMap.put('D', "DEBUG");
+                prefixMap.put('E', "ERROR");
+
+                char type = (char) bytes[1];
+                String prefix = "MOC";
+                if (prefixMap.containsKey(type)) {
+                    prefix = prefixMap.get(type);
+                }
+                // Remove first two bytes "%s"
+                log(buffer.toString().substring(2), prefix);
+                return;
+            }
+        }
+        // Display message as string
+        log(buffer.toString(), "MOC");
     }
 
     @Override
@@ -86,18 +111,30 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.mission_layout, container, false);
-        view.findViewById(R.id.btn_stopMission).setOnClickListener(this);
-        view.findViewById(R.id.btn_position).setOnClickListener(this);
-        view.findViewById(R.id.btn_velocity).setOnClickListener(this);
-        view.findViewById(R.id.btn_releaseEmergency).setOnClickListener(this);
+        // Aircraft actions
         view.findViewById(R.id.btn_takeOff).setOnClickListener(this);
         view.findViewById(R.id.btn_landing).setOnClickListener(this);
+        view.findViewById(R.id.btn_stopMission).setOnClickListener(this);
+        // Console
         txtView_console = (TextView) view.findViewById(R.id.txtView_console);
         txtView_console.setMovementMethod(new ScrollingMovementMethod());
+        // Moc
+        editTxt_command = (EditText) view.findViewById(R.id.editTxt_command);
+        view.findViewById(R.id.btn_send).setOnClickListener(this);
+        // Position - Velocity mission
         editTxt_x = (EditText) view.findViewById(R.id.editTxt_x);
         editTxt_y = (EditText) view.findViewById(R.id.editTxt_y);
         editTxt_z = (EditText) view.findViewById(R.id.editTxt_z);
         editTxt_yaw = (EditText) view.findViewById(R.id.editTxt_yaw);
+        view.findViewById(R.id.btn_position).setOnClickListener(this);
+        view.findViewById(R.id.btn_velocity).setOnClickListener(this);
+        // Waypoint mission
+        view.findViewById(R.id.btn_waypoints_add).setOnClickListener(this);
+        view.findViewById(R.id.btn_waypoints_start).setOnClickListener(this);
+        view.findViewById(R.id.btn_waypoints_clear).setOnClickListener(this);
+        // Emergency
+        view.findViewById(R.id.btn_releaseEmergency).setOnClickListener(this);
+
         return view;
     }
 
@@ -138,7 +175,7 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     }
 
     public void sendMocData(final byte[] data) {
-        if((char)data[0] == getString(R.string.moc_command_stopMission).charAt(0))
+        if((char)data[0] == getString(R.string.moc_command_char).charAt(0))
             log("Send command (" + data.length + ") : " + data.toString(), "MOC");
         else
             log("Send data (" + data.length + ") : " + data.toString(), "MOC");
@@ -161,7 +198,7 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 @Override
                 public void run() {
 
-                    DateFormat df = new SimpleDateFormat("[HH:mm:ss:SSS]");
+                    DateFormat df = new SimpleDateFormat("[HH:mm:ss]");
                     String time = df.format(Calendar.getInstance().getTime());
                     String line = time + " - " + prefix + " - " + log;
                     if(clear) {
@@ -179,8 +216,18 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
+            case R.id.btn_takeOff:
+                sendMocData(getString(R.string.moc_command_takeoff));
+                break;
+            case R.id.btn_landing:
+                sendMocData(getString(R.string.moc_command_landing));
+                break;
             case R.id.btn_stopMission:
                 sendMocData(getString(R.string.moc_command_stopMission));
+                break;
+            case R.id.btn_send:
+                final String command = editTxt_command.getText().toString();
+                sendMocData(command);
                 break;
                 // todo replace redundant code by function
             case R.id.btn_position: {
@@ -249,14 +296,44 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 sendMocData(buffer);
             }
                 break;
+            case R.id.btn_waypoints_add: {
+                // Send add waypoint request frame
+                String mission_command = getString(R.string.moc_command_mission);
+                byte[] buffer = new byte[4];
+                buffer[0] = (byte)mission_command.charAt(0);    // command char
+                buffer[1] = (byte)mission_command.charAt(1);    // mission char
+                buffer[2] = (byte)M210_MissionType.WAYPOINTS.value();
+                buffer[3] = (byte)M210_MissionAction.ADD.getValue();
+                log("Waypoints mission - Add current position");
+                sendMocData(buffer);
+            }
+                break;
+            case R.id.btn_waypoints_start: {
+                // Send start waypoint request frame
+                String mission_command = getString(R.string.moc_command_mission);
+                byte[] buffer = new byte[4];
+                buffer[0] = (byte)mission_command.charAt(0);    // command char
+                buffer[1] = (byte)mission_command.charAt(1);    // mission char
+                buffer[2] = (byte)M210_MissionType.WAYPOINTS.value();
+                buffer[3] = (byte)M210_MissionAction.START.getValue();
+                log("Waypoints mission - Start mission");
+                sendMocData(buffer);
+            }
+                break;
+            case R.id.btn_waypoints_clear: {
+                // Send clear waypoint request frame
+                String mission_command = getString(R.string.moc_command_mission);
+                byte[] buffer = new byte[4];
+                buffer[0] = (byte)mission_command.charAt(0);    // command char
+                buffer[1] = (byte)mission_command.charAt(1);    // mission char
+                buffer[2] = (byte)M210_MissionType.WAYPOINTS.value();
+                buffer[3] = (byte)M210_MissionAction.RESET.getValue();
+                log("Waypoints mission - Add clear waypoints");
+                sendMocData(buffer);
+            }
+                break;
             case R.id.btn_releaseEmergency:
                 sendMocData(getString(R.string.moc_command_emergencyRelease));
-                break;
-            case R.id.btn_takeOff:
-                sendMocData(getString(R.string.moc_command_takeoff));
-                break;
-            case R.id.btn_landing:
-                sendMocData(getString(R.string.moc_command_landing));
                 break;
         }
     }

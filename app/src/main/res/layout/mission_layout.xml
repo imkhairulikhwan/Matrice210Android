@@ -18,58 +18,119 @@
 
     </LinearLayout>
 
+
     <TableLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical">
 
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-        </TableRow>
-
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:orientation="horizontal" android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-        <Button
-            android:id="@+id/btn_takeOff"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:padding="14dp"
-            android:textAllCaps="false"
-            android:textColor="@color/background_blue"
-            android:textSize="14sp"
-            android:text="@string/mission_takeoff" />
+            <Button
+                android:id="@+id/btn_takeOff"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_takeoff" />
 
-        <Button
-            android:id="@+id/btn_landing"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:padding="14dp"
-            android:textAllCaps="false"
-            android:textColor="@color/background_blue"
-            android:textSize="14sp"
-            android:text="@string/mission_landing" />
+            <Button
+                android:id="@+id/btn_landing"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_landing" />
 
-        <Button
-            android:id="@+id/btn_stopMission"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:padding="14dp"
-            android:textAllCaps="false"
-            android:textColor="@color/background_blue"
-            android:textSize="14sp"
-            android:text="@string/mission_stop" />
+            <Button
+                android:id="@+id/btn_stopMission"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_stop" />
         </LinearLayout>
+
+        <EditText
+            android:id="@+id/editTxt_command"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:inputType="textPersonName"
+            android:text="@string/mission_default_command" />
+
+        <Button
+            android:id="@+id/btn_send"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/mission_send_command" />
+
+        <TextView
+            android:id="@+id/txtView_position_velocity_mission"
+            android:layout_width="0dp"
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/buttonsize_margin"
+            android:text="@string/mission_position_velocity" />
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/txtView_x"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_size_normal_medium"
+                android:text="@string/mission_x"
+                android:layout_width="0dp" />
+            <TextView
+                android:id="@+id/txtView_y"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_size_normal_medium"
+                android:text="@string/mission_y"
+                android:layout_width="0dp" />
+            <TextView
+                android:id="@+id/txtView_z"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_size_normal_medium"
+                android:text="@string/mission_z"
+                android:layout_width="0dp" />
+            <TextView
+                android:id="@+id/txtView_yaw"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_size_normal_medium"
+                android:text="@string/mission_yaw"
+                android:layout_width="0dp" />
+        </LinearLayout>
+
 
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:orientation="horizontal" android:layout_width="match_parent"
@@ -147,6 +208,60 @@
                 android:layout_width="0dp" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/txtView_waypoint_mission"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/buttonsize_margin"
+            android:gravity="center"
+            android:text="@string/mission_waypoints" />
+
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/btn_waypoints_add"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_waypoints_add"
+                android:layout_width="0dp"/>
+
+
+            <Button
+                android:id="@+id/btn_waypoints_start"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_waypoints_run"
+                android:layout_width="0dp" />
+
+            <Button
+                android:id="@+id/btn_waypoints_clear"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_waypoints_clear"
+                android:layout_width="0dp" />
+        </LinearLayout>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
 
         <Button
             android:id="@+id/btn_releaseEmergency"

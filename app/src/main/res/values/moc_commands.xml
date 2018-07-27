@@ -4,6 +4,7 @@
 ]>
 
 <resources>
+    <string name="moc_log_char">%</string>
     <string name="moc_command_char">&command_char;</string>
     <string name="moc_command_emergencyStop">&command_char;e</string>
     <string name="moc_command_emergencyRelease">&command_char;r</string>

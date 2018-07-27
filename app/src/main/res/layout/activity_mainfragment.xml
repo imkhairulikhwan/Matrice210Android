@@ -55,13 +55,16 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:layout_marginTop="3dp" />
-
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
         <Button
             android:id="@+id/btn_emergencyStop"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:textSize="@dimen/text_size_between_small_tiny"
+            android:textSize="@dimen/text_size_normal_medium"
             android:text="@string/emergency_stop" />
 
     </LinearLayout>

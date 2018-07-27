@@ -40,7 +40,6 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.dashboard__layout, container, false);
         view.findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
-        view.findViewById(R.id.btn_moc_interface).setOnClickListener(this);
         view.findViewById(R.id.btn_mission_interface).setOnClickListener(this);
         TextView versionText = (TextView) view.findViewById(R.id.version);
         versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
@@ -132,9 +131,6 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
         switch (view.getId()) {
             case R.id.btn_pilot_interface:
                 dashboardIListener.changeFragment(MainFragmentActivity.fragments.pilot);
-                break;
-            case R.id.btn_moc_interface:
-                dashboardIListener.changeFragment(MainFragmentActivity.fragments.moc);
                 break;
             case R.id.btn_mission_interface:
                 dashboardIListener.changeFragment(MainFragmentActivity.fragments.mission);
