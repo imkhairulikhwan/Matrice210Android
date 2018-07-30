@@ -191,7 +191,30 @@ public class MainFragmentActivity extends FragmentActivity
     }
 
     @Override
+    protected void onPause() {
+        // Send emergency stop on app pause
+        sendData(getString(R.string.moc_command_emergencyStop));
+        super.onPause();
+    }
+
+    @Override
+    public void onLowMemory() {
+        // Send emergency stop on app low memory
+        sendData(getString(R.string.moc_command_emergencyStop));
+        super.onLowMemory();
+    }
+
+    @Override
+    protected void onResume() {
+        // Send emergency stop on app resume (safety)
+        sendData(getString(R.string.moc_command_emergencyStop));
+        super.onResume();
+    }
+
+    @Override
     protected void onDestroy() {
+        // Send emergency stop on app destroy
+        sendData(getString(R.string.moc_command_emergencyStop));
         // Prevent memory leak by releasing DJISDKManager's references to this activity
         if (DJISDKManager.getInstance() != null) {
             DJISDKManager.getInstance().destroy();

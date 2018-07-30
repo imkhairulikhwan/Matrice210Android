@@ -51,7 +51,10 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
     private enum M210_MissionAction {
         START(1),
         ADD(2),
-        RESET(3)
+        RESET(3),
+        STOP(4),
+        PAUSE(5),
+        RESUME(6)
         ;
 
         private final int value;
@@ -132,6 +135,10 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
         view.findViewById(R.id.btn_waypoints_add).setOnClickListener(this);
         view.findViewById(R.id.btn_waypoints_start).setOnClickListener(this);
         view.findViewById(R.id.btn_waypoints_clear).setOnClickListener(this);
+        view.findViewById(R.id.btn_waypoints_pause).setOnClickListener(this);
+        view.findViewById(R.id.btn_waypoints_resume).setOnClickListener(this);
+        view.findViewById(R.id.btn_waypoints_stop).setOnClickListener(this);
+
         // Emergency
         view.findViewById(R.id.btn_releaseEmergency).setOnClickListener(this);
 
@@ -296,46 +303,48 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 sendMocData(buffer);
             }
                 break;
-            case R.id.btn_waypoints_add: {
+            case R.id.btn_waypoints_add:
                 // Send add waypoint request frame
-                String mission_command = getString(R.string.moc_command_mission);
-                byte[] buffer = new byte[4];
-                buffer[0] = (byte)mission_command.charAt(0);    // command char
-                buffer[1] = (byte)mission_command.charAt(1);    // mission char
-                buffer[2] = (byte)M210_MissionType.WAYPOINTS.value();
-                buffer[3] = (byte)M210_MissionAction.ADD.getValue();
-                log("Waypoints mission - Add current position");
-                sendMocData(buffer);
-            }
+                sendWaypointsMissionAction(M210_MissionAction.ADD);
+                log("Waypoints mission - Current position saved");
                 break;
-            case R.id.btn_waypoints_start: {
+            case R.id.btn_waypoints_start:
                 // Send start waypoint request frame
-                String mission_command = getString(R.string.moc_command_mission);
-                byte[] buffer = new byte[4];
-                buffer[0] = (byte)mission_command.charAt(0);    // command char
-                buffer[1] = (byte)mission_command.charAt(1);    // mission char
-                buffer[2] = (byte)M210_MissionType.WAYPOINTS.value();
-                buffer[3] = (byte)M210_MissionAction.START.getValue();
-                log("Waypoints mission - Start mission");
-                sendMocData(buffer);
-            }
+                sendWaypointsMissionAction(M210_MissionAction.START);
+                log("Waypoints mission - Start");
                 break;
-            case R.id.btn_waypoints_clear: {
+            case R.id.btn_waypoints_clear:
                 // Send clear waypoint request frame
-                String mission_command = getString(R.string.moc_command_mission);
-                byte[] buffer = new byte[4];
-                buffer[0] = (byte)mission_command.charAt(0);    // command char
-                buffer[1] = (byte)mission_command.charAt(1);    // mission char
-                buffer[2] = (byte)M210_MissionType.WAYPOINTS.value();
-                buffer[3] = (byte)M210_MissionAction.RESET.getValue();
-                log("Waypoints mission - Add clear waypoints");
-                sendMocData(buffer);
-            }
+                sendWaypointsMissionAction(M210_MissionAction.RESET);
+                log("Waypoints mission - Clear waypoints");
+                break;
+            case R.id.btn_waypoints_pause:
+                // Send clear waypoint request frame
+                sendWaypointsMissionAction(M210_MissionAction.PAUSE);
+                log("Waypoints mission - Pause");
+                break;
+            case R.id.btn_waypoints_resume:
+                sendWaypointsMissionAction(M210_MissionAction.RESUME);
+                log("Waypoints mission - Resume");
+                break;
+            case R.id.btn_waypoints_stop:
+                sendWaypointsMissionAction(M210_MissionAction.STOP);
+                log("Waypoints mission - Stop");
                 break;
             case R.id.btn_releaseEmergency:
                 sendMocData(getString(R.string.moc_command_emergencyRelease));
                 break;
         }
+    }
+
+    private void sendWaypointsMissionAction(M210_MissionAction action) {
+        String mission_command = getString(R.string.moc_command_mission);
+        byte[] buffer = new byte[4];
+        buffer[0] = (byte)mission_command.charAt(0);    // command char
+        buffer[1] = (byte)mission_command.charAt(1);    // mission char
+        buffer[2] = (byte)M210_MissionType.WAYPOINTS.value();
+        buffer[3] = (byte)action.getValue();
+        sendMocData(buffer);
     }
 
     private float readFloatFromEditText(EditText editText) {

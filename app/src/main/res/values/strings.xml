@@ -34,8 +34,11 @@
     <string name="mission_position">Move from offset (m, deg)</string>
     <string name="mission_velocity">Move with velocity (m/s, deg/s)</string>
     <!-- Waypoints -->
+    <string name="mission_waypoints">Waypoints mission</string>
     <string name="mission_waypoints_add">Add position</string>
     <string name="mission_waypoints_run">Play sequence</string>
     <string name="mission_waypoints_clear">Clear sequence</string>
-    <string name="mission_waypoints">Waypoint mission</string>
+    <string name="mission_waypoints_pause">Pause</string>
+    <string name="mission_waypoints_resume">Resume</string>
+    <string name="mission_waypoints_stop">Stop</string>
 </resources>

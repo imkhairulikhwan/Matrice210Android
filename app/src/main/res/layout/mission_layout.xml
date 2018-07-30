@@ -258,6 +258,48 @@
                 android:layout_width="0dp" />
         </LinearLayout>
 
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:orientation="horizontal" android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/btn_waypoints_pause"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_waypoints_pause"
+                android:layout_width="0dp"/>
+
+
+            <Button
+                android:id="@+id/btn_waypoints_resume"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_waypoints_resume"
+                android:layout_width="0dp" />
+
+            <Button
+                android:id="@+id/btn_waypoints_stop"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:padding="14dp"
+                android:textAllCaps="false"
+                android:textColor="@color/background_blue"
+                android:textSize="14sp"
+                android:text="@string/mission_waypoints_stop"
+                android:layout_width="0dp" />
+        </LinearLayout>
+
         <Space
             android:layout_width="0dp"
             android:layout_height="wrap_content"
