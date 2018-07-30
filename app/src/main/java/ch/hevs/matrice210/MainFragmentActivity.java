@@ -3,6 +3,8 @@ package ch.hevs.matrice210;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,6 +17,7 @@ import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -48,10 +51,51 @@ public class MainFragmentActivity extends FragmentActivity
         mission
     }
 
+    // UI
+    private TextView txtView_ob_state;
+
     // DJI
     private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
     private FlightController mFlightController = null;
     private List<String> missingPermission = new ArrayList<>();
+
+    // Watchdog
+    final int watchdogLimit = 3;
+    private int watchdogCnt = watchdogLimit;
+    private Handler watchdogHandler;
+    private Runnable watchdogRunnable = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                sendData("#w");
+                watchdogCnt++;
+                // watchdogCnt is reset on ack from Ob computer.
+                if(watchdogCnt >= watchdogLimit) {
+                    watchdogCnt = watchdogLimit;
+                    setObState(false);
+                } else {
+                    setObState(true);
+                }
+            } finally {
+                watchdogHandler.postDelayed(watchdogRunnable, 500);
+            }
+        }
+    };
+
+    private void setObState(final boolean state) {
+        ((Activity)this).runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if(state) {
+                    txtView_ob_state.setText(getString(R.string.ob_state_connected));
+                    txtView_ob_state.setTextColor(Color.GREEN);
+                } else {
+                    txtView_ob_state.setText(getString(R.string.ob_state_disconnected));
+                    txtView_ob_state.setTextColor(Color.RED);
+                }
+            }
+        });
+    }
 
     private final int REQUEST_PERMISSION_CODE = 12345;
     private final String[] REQUIRED_PERMISSION_LIST = new String[] {
@@ -70,7 +114,6 @@ public class MainFragmentActivity extends FragmentActivity
             Manifest.permission.READ_PHONE_STATE,
     };
 
-    private Handler watchdogHandler;
 
     private DJISDKManager.SDKManagerCallback registrationCallback = new DJISDKManager.SDKManagerCallback() {
         @Override
@@ -96,7 +139,21 @@ public class MainFragmentActivity extends FragmentActivity
                     mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
                         @Override
                         public void onReceive(byte[] bytes) {
-                            if(mocInteraction != null)
+                            boolean redirectReceivedData = true;
+                            if(bytes.length == 2) {
+                                StringBuilder buffer = new StringBuilder();
+                                for (byte b : bytes) {
+                                    buffer.append((char) b);
+                                }
+                                // Reset watchdogCnt on ack from Ob computer
+                                if(buffer.toString().contentEquals(getString(R.string.moc_command_watchdog))) {
+                                    watchdogCnt = 0;
+                                    redirectReceivedData = false;
+                                }
+                            }
+
+                            // Redirect data to active fragment
+                            if(mocInteraction != null && redirectReceivedData)
                                 mocInteraction.dataReceived(bytes);
                         }
                     });
@@ -114,18 +171,20 @@ public class MainFragmentActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mainfragment);
 
+        // UI
+        Button btn_emergencyStop = (Button) findViewById(R.id.btn_emergencyStop);
+        btn_emergencyStop.setOnClickListener(this);
+        txtView_ob_state = (TextView) findViewById(R.id.txtView_ob_state);
+
         // Fragment
         fragmentManager = getSupportFragmentManager();
         dashboardFragment = new DashboardFragment();
         pilotFragment = new PilotFragment();
         missionFragment = new MissionFragment();
-
         fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
 
         checkAndRequestPermissions();
 
-        Button btn_emergencyStop = (Button) findViewById(R.id.btn_emergencyStop);
-        btn_emergencyStop.setOnClickListener(this);
 
         watchdogHandler = new Handler();
         //*/
@@ -200,6 +259,16 @@ public class MainFragmentActivity extends FragmentActivity
         }
     }
 
+    @Override
+    public void onClick(View view) {
+        switch(view.getId()) {
+            case R.id.btn_emergencyStop:
+                toast("Emergency stop");
+                sendData(getString(R.string.moc_command_emergencyStop));
+                break;
+        }
+    }
+
     private void loginAccount(){
         UserAccountManager.getInstance().logIntoDJIUserAccount(this,
                 new CommonCallbacks.CompletionCallbackWith<UserAccountState>() {
@@ -214,23 +283,12 @@ public class MainFragmentActivity extends FragmentActivity
                 });
     }
 
-    Runnable watchdog = new Runnable() {
-        @Override
-        public void run() {
-            try {
-                sendData("#w");
-            } finally {
-                watchdogHandler.postDelayed(watchdog, 500);
-            }
-        }
-    };
-
     void startWatchdog() {
-        watchdog.run();
+        watchdogRunnable.run();
     }
 
     void stopWatchdog() {
-        watchdogHandler.removeCallbacks(watchdog);
+        watchdogHandler.removeCallbacks(watchdogRunnable);
     }
 
     /**
@@ -298,15 +356,5 @@ public class MainFragmentActivity extends FragmentActivity
                 Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    @Override
-    public void onClick(View view) {
-        switch(view.getId()) {
-            case R.id.btn_emergencyStop:
-                toast("Emergency stop");
-                sendData(getString(R.string.moc_command_emergencyStop));
-                break;
-        }
     }
 }

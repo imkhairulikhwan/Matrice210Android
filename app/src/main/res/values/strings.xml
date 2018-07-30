@@ -10,6 +10,9 @@
 
     <!-- Status bar -->
     <string name="emergency_stop">Emergency stop</string>
+    <string name="ob_state_connected"> OnBoard connected</string>
+    <string name="ob_state_disconnected"> OnBoard disconnected</string>
+
 
     <!-- Mission -->
     <string name="mission_takeoff">Take off</string>
