@@ -11,7 +11,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.nio.ByteBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -19,18 +18,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ch.hevs.matrice210.Interfaces.MocInteraction;
 import ch.hevs.matrice210.Interfaces.MocInteractionListener;
+import ch.hevs.matrice210.tools.ByteArrayUtils;
 import dji.common.error.DJIError;
-import dji.common.mission.tapfly.Vector;
-
 
 public class MissionFragment extends Fragment implements Observer, View.OnClickListener, MocInteraction {
 
     // UI Elements
-    private TextView txtView_console;
+    private TextView txtView_console, txtView_antenna;
     private EditText editTxt_command, editTxt_x, editTxt_y, editTxt_z, editTxt_yaw;
+
+    // Antenna
+    char loading[] = {'-', '\\', '|', '/' };    // used to display a loading char
+    int antennaLoadingIndex = 0;
 
     private enum M210_MissionType {
         VELOCITY(1),
@@ -72,32 +77,48 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
 
     @Override
     public void dataReceived(byte[] bytes) {
-        StringBuilder buffer = new StringBuilder();
-        for (byte b : bytes) {
-            buffer.append((char) b);
+        String data = ByteArrayUtils.byteArrayToString(bytes);
+
+        // Regex are used to find specified format
+        // () group data
+
+        // Log message are formatted as follow
+        // [moc_log_char][type][message]
+        // type is D (debug), E (error) or S (status)
+        // message is a string
+        Pattern p = Pattern.compile("^" + getString(R.string.moc_log_char) + "([DES])(.*)$");
+        Matcher m = p.matcher(data);
+        if (m.find()) {
+            MatchResult mr = m.toMatchResult();
+            Map<Character, String> prefixMap = new HashMap<>();
+            prefixMap.put('S', "STATUS");
+            prefixMap.put('D', "DEBUG");
+            prefixMap.put('E', "ERROR");
+            // Get display type from char type
+            char type = mr.group(1).charAt(0);
+            String prefix = prefixMap.get(type);
+            log(mr.group(2), prefix);
+            return;
         }
 
-        if(bytes.length >= 2) {
-            // If data start with log char it is a log message
-            // byte[1] indicate log type
-            if (bytes[0] == getString(R.string.moc_log_char).charAt(0)) {
-                Map<Character, String> prefixMap = new HashMap<>();
-                prefixMap.put('S', "STATUS");
-                prefixMap.put('D', "DEBUG");
-                prefixMap.put('E', "ERROR");
-
-                char type = (char) bytes[1];
-                String prefix = "MOC";
-                if (prefixMap.containsKey(type)) {
-                    prefix = prefixMap.get(type);
-                }
-                // Remove first two bytes "%s"
-                log(buffer.toString().substring(2), prefix);
-                return;
-            }
+        // Antenna message are formatted as follow
+        // [moc_command_antenna][value in float (4 bytes)]
+        p = Pattern.compile("^" + getString(R.string.moc_command_antenna));
+        m = p.matcher(data);
+        if (m.find() && bytes.length == 6) {
+            // Get 4 bytes of float value
+            byte[] valueArray = new byte[4];
+            System.arraycopy(bytes, 2, valueArray, 0, 4);
+            // Cpp and java doesn't have the same endianness
+            ByteArrayUtils.reverseEndianness(valueArray);
+            int value = ByteArrayUtils.byteArrayToInt(valueArray);
+            // Update dedicated text view with antenna value
+            updateAntennaValue(value);
+            return;
         }
+
         // Display message as string
-        log(buffer.toString(), "MOC");
+        log(data, "MOC");
     }
 
     @Override
@@ -138,7 +159,8 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
         view.findViewById(R.id.btn_waypoints_pause).setOnClickListener(this);
         view.findViewById(R.id.btn_waypoints_resume).setOnClickListener(this);
         view.findViewById(R.id.btn_waypoints_stop).setOnClickListener(this);
-
+        // Antenna
+        txtView_antenna = (TextView) view.findViewById(R.id.txtView_antenna);
         // Emergency
         view.findViewById(R.id.btn_releaseEmergency).setOnClickListener(this);
 
@@ -183,9 +205,9 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
 
     public void sendMocData(final byte[] data) {
         if((char)data[0] == getString(R.string.moc_command_char).charAt(0))
-            log("Send command (" + data.length + ") : " + data.toString(), "MOC");
+            log("Send command (" + data.length + ") : " + ByteArrayUtils.byteArrayToString(data), "MOC");
         else
-            log("Send data (" + data.length + ") : " + data.toString(), "MOC");
+            log("Send data (" + data.length + ") : " + ByteArrayUtils.byteArrayToString(data), "MOC");
         mocIListener.sendData(data);
     }
 
@@ -236,23 +258,23 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 final String command = editTxt_command.getText().toString();
                 sendMocData(command);
                 break;
-                // todo replace redundant code by function
+            // todo replace redundant code by function
             case R.id.btn_position: {
                 float x = readFloatFromEditText(editTxt_x);
                 float y = readFloatFromEditText(editTxt_y);
                 float z = readFloatFromEditText(editTxt_z);
                 float yaw = readFloatFromEditText(editTxt_yaw);
 
-                byte[] xB = float2ByteArray(x);
-                byte[] yB = float2ByteArray(y);
-                byte[] zB = float2ByteArray(z);
-                byte[] yawB = float2ByteArray(yaw);
+                byte[] xB = ByteArrayUtils.float2ByteArray(x);
+                byte[] yB = ByteArrayUtils.float2ByteArray(y);
+                byte[] zB = ByteArrayUtils.float2ByteArray(z);
+                byte[] yawB = ByteArrayUtils.float2ByteArray(yaw);
 
                 // Java and C++ float representation have inverse endianness
-                reverseEndianness(xB);
-                reverseEndianness(yB);
-                reverseEndianness(zB);
-                reverseEndianness(yawB);
+                ByteArrayUtils.reverseEndianness(xB);
+                ByteArrayUtils.reverseEndianness(yB);
+                ByteArrayUtils.reverseEndianness(zB);
+                ByteArrayUtils.reverseEndianness(yawB);
 
                 // Frame
                 String mission_command = getString(R.string.moc_command_mission);
@@ -269,23 +291,23 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 log("Position offset mission : " + String.valueOf(x) + ", " + String.valueOf(y) + ", " + String.valueOf(z) + ", " + String.valueOf(yaw));
                 sendMocData(buffer);
             }
-                break;
+            break;
             case R.id.btn_velocity: {
                 float x = readFloatFromEditText(editTxt_x);
                 float y = readFloatFromEditText(editTxt_y);
                 float z = readFloatFromEditText(editTxt_z);
                 float yaw = readFloatFromEditText(editTxt_yaw);
 
-                byte[] xB = float2ByteArray(x);
-                byte[] yB = float2ByteArray(y);
-                byte[] zB = float2ByteArray(z);
-                byte[] yawB = float2ByteArray(yaw);
+                byte[] xB = ByteArrayUtils.float2ByteArray(x);
+                byte[] yB = ByteArrayUtils.float2ByteArray(y);
+                byte[] zB = ByteArrayUtils.float2ByteArray(z);
+                byte[] yawB = ByteArrayUtils.float2ByteArray(yaw);
 
                 // Java and C++ float representation have inverse endianness
-                reverseEndianness(xB);
-                reverseEndianness(yB);
-                reverseEndianness(zB);
-                reverseEndianness(yawB);
+                ByteArrayUtils.reverseEndianness(xB);
+                ByteArrayUtils.reverseEndianness(yB);
+                ByteArrayUtils.reverseEndianness(zB);
+                ByteArrayUtils.reverseEndianness(yawB);
 
                 // Frame
                 String mission_command = getString(R.string.moc_command_mission);
@@ -302,7 +324,7 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
                 log("Velocity mission : " + String.valueOf(x) + ", " + String.valueOf(y) + ", " + String.valueOf(z) + ", " + String.valueOf(yaw));
                 sendMocData(buffer);
             }
-                break;
+            break;
             case R.id.btn_waypoints_add:
                 // Send add waypoint request frame
                 sendWaypointsMissionAction(M210_MissionAction.ADD);
@@ -357,30 +379,20 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
         return val;
     }
 
-    private Vector readVectorFromEditTexts(EditText x, EditText y, EditText z) {
-        return new Vector(readFloatFromEditText(x),
-                readFloatFromEditText(y),
-                readFloatFromEditText(z));
-    }
-
-    private static byte [] float2ByteArray (float value)
-    {
-        return ByteBuffer.allocate(4).putFloat(value).array();
-    }
-
-    public static void reverseEndianness(byte[] array) {
-        if (null == array)
-            return;
-
-        int i = 0;
-        int j = array.length - 1;
-        byte tmp;
-        while (j > i) {
-            tmp = array[j];
-            array[j] = array[i];
-            array[i] = tmp;
-            j--;
-            i++;
+    public void updateAntennaValue(final int value) {
+        // runOnUiThread used to avoid errors
+        // "Only the original thread that created a view hierarchy can touch its views"
+        try{
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    String text = getString(R.string.mission_antenna, loading[antennaLoadingIndex], value);
+                    txtView_antenna.setText(text);
+                    antennaLoadingIndex = (++antennaLoadingIndex)%4;
+                }
+            });
+        } catch (NullPointerException e) {
+            // Avoid null pointer exception
         }
     }
 

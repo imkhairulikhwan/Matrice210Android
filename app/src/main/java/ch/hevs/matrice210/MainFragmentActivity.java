@@ -23,9 +23,13 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ch.hevs.matrice210.Interfaces.MocInteraction;
 import ch.hevs.matrice210.Interfaces.MocInteractionListener;
+import ch.hevs.matrice210.tools.ByteArrayUtils;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
 import dji.common.useraccount.UserAccountState;
@@ -67,9 +71,9 @@ public class MainFragmentActivity extends FragmentActivity
         @Override
         public void run() {
             try {
-                sendData("#w");
+                sendData(getString(R.string.moc_command_watchdog));
                 watchdogCnt++;
-                // watchdogCnt is reset on ack from Ob computer.
+                // watchdogCnt is reset on ack from Ob computer
                 if(watchdogCnt >= watchdogLimit) {
                     watchdogCnt = watchdogLimit;
                     setObState(false);
@@ -139,21 +143,17 @@ public class MainFragmentActivity extends FragmentActivity
                     mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
                         @Override
                         public void onReceive(byte[] bytes) {
-                            boolean redirectReceivedData = true;
-                            if(bytes.length == 2) {
-                                StringBuilder buffer = new StringBuilder();
-                                for (byte b : bytes) {
-                                    buffer.append((char) b);
-                                }
-                                // Reset watchdogCnt on ack from Ob computer
-                                if(buffer.toString().contentEquals(getString(R.string.moc_command_watchdog))) {
-                                    watchdogCnt = 0;
-                                    redirectReceivedData = false;
-                                }
+                            String data = ByteArrayUtils.byteArrayToString(bytes);
+                            // Verify if received data is watchdog
+                            Pattern p = Pattern.compile("^" + getString(R.string.moc_command_watchdog)+ "$");
+                            Matcher m = p.matcher(data);
+                            if(m.matches()) {
+                                watchdogCnt = 0;
+                                return;
                             }
 
                             // Redirect data to active fragment
-                            if(mocInteraction != null && redirectReceivedData)
+                            if(mocInteraction != null)
                                 mocInteraction.dataReceived(bytes);
                         }
                     });
