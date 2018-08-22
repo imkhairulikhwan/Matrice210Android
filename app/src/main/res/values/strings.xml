@@ -43,4 +43,5 @@
     <string name="mission_waypoints_stop">Stop</string>
     <!-- Antenna -->
     <string name="mission_antenna">[%1$c] Antenna : %2$d</string>
+    <string name="mission_obtain_control_authority">Reobtain control authority</string>
 </resources>

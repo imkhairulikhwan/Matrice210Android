@@ -3,7 +3,6 @@ package ch.hevs.matrice210;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -23,10 +22,12 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ch.hevs.matrice210.Fragments.DashboardFragment;
+import ch.hevs.matrice210.Fragments.MissionFragment;
+import ch.hevs.matrice210.Fragments.PilotFragment;
 import ch.hevs.matrice210.Interfaces.MocInteraction;
 import ch.hevs.matrice210.Interfaces.MocInteractionListener;
 import ch.hevs.matrice210.tools.ByteArrayUtils;
@@ -40,20 +41,29 @@ import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
 
+/**
+ * This class handles remote controller connection and communication with aircraft. It is the only
+ * Activity of the application. The goal is to implement methods that are always running in background
+ * (watchdog, message receiving, ..) and display fragment depending on user choice.
+ * Three fragments are available :
+ *      - DashboardFragment - Displayed at app launch , allow user to select on of the two following fragments
+ *      - PilotFragment - Pilot interface similar to the one provided by DJI Go 4 App
+ *      - MissionFragment - Dedicated interface to interact with the OnBoard computer
+ */
 public class MainFragmentActivity extends FragmentActivity
         implements DashboardFragment.DashboardInteractionListener, MocInteractionListener, View.OnClickListener {
     // Fragment
-     private FragmentManager fragmentManager;
+    private FragmentManager fragmentManager;
     private DashboardFragment dashboardFragment;
     private PilotFragment pilotFragment;
     private MissionFragment missionFragment;
-    private MocInteraction mocInteraction;
-
-    public enum fragments {
+    public enum fragments { /*!< Fragment enumeration  */
         dashboard,
         pilot,
         mission
     }
+    // Moc interaction - Handle data receiving
+    private MocInteraction mocInteraction;
 
     // UI
     private TextView txtView_ob_state;
@@ -63,7 +73,12 @@ public class MainFragmentActivity extends FragmentActivity
     private FlightController mFlightController = null;
     private List<String> missingPermission = new ArrayList<>();
 
-    // Watchdog
+    /**
+     *  Watchdog is sent continuously by the mobile application to the aircraft.
+     *  Aircraft is supposed to resend watchog to indicate that connection is maintained
+     *  On ack receiving, application reset watchdog counter.
+     *  If the aircraft don't ack for too long, it is considered as disconnected
+     */
     final int watchdogLimit = 3;
     private int watchdogCnt = watchdogLimit;
     private Handler watchdogHandler;
@@ -86,6 +101,19 @@ public class MainFragmentActivity extends FragmentActivity
         }
     };
 
+    void startWatchdog() {
+        watchdogRunnable.run();
+    }
+
+    void stopWatchdog() {
+        watchdogHandler.removeCallbacks(watchdogRunnable);
+    }
+
+
+    /**
+     * Display OnBoard connection state
+     * @param state true is connected
+     */
     private void setObState(final boolean state) {
         ((Activity)this).runOnUiThread(new Runnable() {
             @Override
@@ -101,6 +129,9 @@ public class MainFragmentActivity extends FragmentActivity
         });
     }
 
+    /**
+     * Permissions list
+     */
     private final int REQUEST_PERMISSION_CODE = 12345;
     private final String[] REQUIRED_PERMISSION_LIST = new String[] {
             Manifest.permission.VIBRATE,
@@ -118,7 +149,9 @@ public class MainFragmentActivity extends FragmentActivity
             Manifest.permission.READ_PHONE_STATE,
     };
 
-
+    /**
+     * Handles product connection changes
+     */
     private DJISDKManager.SDKManagerCallback registrationCallback = new DJISDKManager.SDKManagerCallback() {
         @Override
         public void onRegister(DJIError error) {
@@ -139,12 +172,14 @@ public class MainFragmentActivity extends FragmentActivity
                 toast("Aircraft connected");
                 Aircraft mAircraft = (Aircraft)newProduct;
                 mFlightController = mAircraft.getFlightController();
-                if(mFlightController != null) {
+                if(mFlightController != null) { // Verify that flight controller is valid
+                    // Set callback for data receiving from OnBoard SDK
                     mFlightController.setOnboardSDKDeviceDataCallback(new FlightController.OnboardSDKDeviceDataCallback() {
                         @Override
                         public void onReceive(byte[] bytes) {
                             String data = ByteArrayUtils.byteArrayToString(bytes);
                             // Verify if received data is watchdog
+                            // and reset it in that case
                             Pattern p = Pattern.compile("^" + getString(R.string.moc_command_watchdog)+ "$");
                             Matcher m = p.matcher(data);
                             if(m.matches()) {
@@ -166,9 +201,27 @@ public class MainFragmentActivity extends FragmentActivity
         }
     };
 
+    /**
+     * Log into DJI user account
+     */
+    private void loginAccount(){
+        UserAccountManager.getInstance().logIntoDJIUserAccount(this,
+                new CommonCallbacks.CompletionCallbackWith<UserAccountState>() {
+                    @Override
+                    public void onSuccess(final UserAccountState userAccountState) {
+                        toast("Login succeeded!");
+                    }
+                    @Override
+                    public void onFailure(DJIError error) {
+                        toast("Login failed!");
+                    }
+                });
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Display status bar
         setContentView(R.layout.activity_mainfragment);
 
         // UI
@@ -181,10 +234,10 @@ public class MainFragmentActivity extends FragmentActivity
         dashboardFragment = new DashboardFragment();
         pilotFragment = new PilotFragment();
         missionFragment = new MissionFragment();
+        // Init fragment is the dashboard
         fragmentManager.beginTransaction().replace(R.id.main_container_fragment, dashboardFragment).commit();
 
         checkAndRequestPermissions();
-
 
         watchdogHandler = new Handler();
         //*/
@@ -222,6 +275,11 @@ public class MainFragmentActivity extends FragmentActivity
         super.onDestroy();
     }
 
+    /**
+     * Used to enable Bridge Ip during debugging session
+     * More info here https://developer.dji.com/mobile-sdk/documentation/ios-tutorials/BridgeAppDemo.html
+     * @param bridgeIP IP address of the terminal connected to the remote controller
+     */
     @Override
     public void handleBridgeIP(final String bridgeIP) {
         try {
@@ -234,6 +292,10 @@ public class MainFragmentActivity extends FragmentActivity
         }
     }
 
+    /**
+     * Change active fragment
+     * @param fragment New fragment to display
+     */
     @Override
     public void changeFragment(fragments fragment) {
         Fragment nextFragment = null;
@@ -252,6 +314,7 @@ public class MainFragmentActivity extends FragmentActivity
         if(nextFragment != null) {
             fragmentManager.beginTransaction().replace(R.id.main_container_fragment, nextFragment).addToBackStack(fragment.toString()).commit();
             mocInteraction = null;
+            // Verify if fragment implements MocInteraction
             try {
                 mocInteraction = (MocInteraction) nextFragment;
             } catch (ClassCastException e) {
@@ -262,11 +325,10 @@ public class MainFragmentActivity extends FragmentActivity
         }
     }
 
-    @Override
-    public void sendData(String data) {
-        sendData(data.getBytes());
-    }
-
+    /**
+     * Send data to OnBoard SDK
+     * @param data
+     */
     @Override
     public void sendData(byte[] data) {
         if (mFlightController != null) {
@@ -283,35 +345,20 @@ public class MainFragmentActivity extends FragmentActivity
     }
 
     @Override
+    public void sendData(String data) {
+        sendData(data.getBytes());
+    }
+
+
+    @Override
     public void onClick(View view) {
         switch(view.getId()) {
+            // Emergency stop button in the status bar
             case R.id.btn_emergencyStop:
                 toast("Emergency stop");
                 sendData(getString(R.string.moc_command_emergencyStop));
                 break;
         }
-    }
-
-    private void loginAccount(){
-        UserAccountManager.getInstance().logIntoDJIUserAccount(this,
-                new CommonCallbacks.CompletionCallbackWith<UserAccountState>() {
-                    @Override
-                    public void onSuccess(final UserAccountState userAccountState) {
-                        toast("Login succeeded!");
-                    }
-                    @Override
-                    public void onFailure(DJIError error) {
-                        toast("Login failed!");
-                    }
-                });
-    }
-
-    void startWatchdog() {
-        watchdogRunnable.run();
-    }
-
-    void stopWatchdog() {
-        watchdogHandler.removeCallbacks(watchdogRunnable);
     }
 
     /**
@@ -370,6 +417,10 @@ public class MainFragmentActivity extends FragmentActivity
         }
     }
 
+    /**
+     * Display message in the console and as a toat
+     * @param text Message to display
+     */
     public void toast(final String text)
     {
         ((Activity)this).runOnUiThread(new Runnable() {

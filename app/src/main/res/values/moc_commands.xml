@@ -14,4 +14,5 @@
     <string name="moc_command_watchdog">&command_char;w</string>
     <string name="moc_command_mission">&command_char;m</string>
     <string name="moc_command_antenna">&command_char;a</string>
+    <string name="moc_command_obtainControlAuthority">&command_char;o</string>
 </resources>

@@ -1,4 +1,4 @@
-package ch.hevs.matrice210;
+package ch.hevs.matrice210.Fragments;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -17,8 +17,15 @@ import android.widget.TextView;
 import java.util.Observable;
 import java.util.Observer;
 
+import ch.hevs.matrice210.MainFragmentActivity;
+import ch.hevs.matrice210.R;
 import dji.sdk.sdkmanager.DJISDKManager;
 
+/**
+ * This fragment is displayed on app launch. It allows user to select which interface he want to use
+ * (Pilot or Mission)
+ * An edit text allow user to define an IP address to enable Bridge IP for debugging session
+ */
 public class DashboardFragment extends Fragment implements Observer, View.OnClickListener {
     // UI Elements
     private EditText editTxt_bridge;
@@ -41,9 +48,10 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
         View view = inflater.inflate(R.layout.dashboard__layout, container, false);
         view.findViewById(R.id.btn_pilot_interface).setOnClickListener(this);
         view.findViewById(R.id.btn_mission_interface).setOnClickListener(this);
+        // Version text view
         TextView versionText = (TextView) view.findViewById(R.id.version);
         versionText.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
-
+        // Bridge IP edit text
         editTxt_bridge = (EditText) view.findViewById(R.id.editTxt_bridge);
         editTxt_bridge.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -86,13 +94,15 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
 
     @Override
     public void onActivityCreated( Bundle savedInstanceState) {
-        super.onActivityCreated( savedInstanceState);
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
     public void onAttach( Context activity) {
         super.onAttach( activity);
         try {
+            // Dashboard interaction listener handles bridge ip enabling
+            // and fragment changes
             dashboardIListener = (DashboardInteractionListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
@@ -108,12 +118,13 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
 
     @Override
     public void update(Observable observable, Object o) {
-        // Try catch cause the fragment is not necessary visible
-        try {
 
-        }catch (Exception e) {}
     }
 
+    /**
+     *  Enable Bridge Ip during debugging session
+     *  The Bridge Ip address is get from editTxt_bridge
+     */
     public void handleBridgeIPTextChange() {
         String bridgeIP = editTxt_bridge.getText().toString();
         if (!TextUtils.isEmpty(bridgeIP)) {
@@ -126,6 +137,10 @@ public class DashboardFragment extends Fragment implements Observer, View.OnClic
         }
     }
 
+    /**
+     * Click listener used to choose which interface has to be displayed
+     * @param view Current view
+     */
     @Override
     public void onClick(View view) {
         switch (view.getId()) {

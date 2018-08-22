@@ -314,6 +314,18 @@
             android:layout_weight="1" />
 
         <Button
+            android:id="@+id/btn_obtainControlAuthority"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:padding="14dp"
+            android:textAllCaps="false"
+            android:textColor="@color/background_blue"
+            android:textSize="14sp"
+            android:text="@string/mission_obtain_control_authority" />
+
+
+        <Button
             android:id="@+id/btn_releaseEmergency"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

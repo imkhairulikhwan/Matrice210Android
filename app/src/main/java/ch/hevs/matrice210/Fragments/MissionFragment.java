@@ -1,4 +1,4 @@
-package ch.hevs.matrice210;
+package ch.hevs.matrice210.Fragments;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 import ch.hevs.matrice210.Interfaces.MocInteraction;
 import ch.hevs.matrice210.Interfaces.MocInteractionListener;
+import ch.hevs.matrice210.R;
 import ch.hevs.matrice210.tools.ByteArrayUtils;
 import dji.common.error.DJIError;
 
@@ -161,7 +162,8 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
         view.findViewById(R.id.btn_waypoints_stop).setOnClickListener(this);
         // Antenna
         txtView_antenna = (TextView) view.findViewById(R.id.txtView_antenna);
-        // Emergency
+        // Emergency and control authority
+        view.findViewById(R.id.btn_obtainControlAuthority).setOnClickListener(this);
         view.findViewById(R.id.btn_releaseEmergency).setOnClickListener(this);
 
         return view;
@@ -352,6 +354,9 @@ public class MissionFragment extends Fragment implements Observer, View.OnClickL
             case R.id.btn_waypoints_stop:
                 sendWaypointsMissionAction(M210_MissionAction.STOP);
                 log("Waypoints mission - Stop");
+                break;
+            case R.id.btn_obtainControlAuthority:
+                sendMocData(getString(R.string.moc_command_obtainControlAuthority));
                 break;
             case R.id.btn_releaseEmergency:
                 sendMocData(getString(R.string.moc_command_emergencyRelease));

@@ -1,4 +1,4 @@
-package ch.hevs.matrice210;
+package ch.hevs.matrice210.Fragments;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -18,9 +18,17 @@ import com.dji.mapkit.models.DJILatLng;
 import java.util.Observable;
 import java.util.Observer;
 
+import ch.hevs.matrice210.R;
 import ch.hevs.matrice210.tools.DensityUtil;
 import dji.ux.widget.MapWidget;
 
+/**
+ * This fragment displays an interface similar to the one provided by the
+ * DJI Go 4 app. The goal is to allow user to fly the aircraft manually with
+ * a livestream of the main camera, take-off/landing/RTH buttons and camera
+ * control.
+ * This class is inspired by the DJI Android sample provided on Github
+ */
 public class PilotFragment extends Fragment implements Observer{
     private MapWidget mapWidget;
     private ViewGroup parentView;

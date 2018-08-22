@@ -42,67 +42,6 @@
         android:layout_alignParentTop="true"
         android:background="@color/transparent" />
 
-    <!--
-    <LinearLayout
-        android:id="@+id/camera"
-        android:layout_alignParentRight="true"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/signal"
-        android:layout_marginTop="15dp"
-        android:background="@color/dark_gray"
-        android:orientation="horizontal">
-
-        <dji.ux.widget.config.CameraConfigISOAndEIWidget
-            android:layout_width="50dp"
-            android:layout_height="25dp"/>
-
-        <dji.ux.widget.config.CameraConfigShutterWidget
-            android:layout_width="50dp"
-            android:layout_height="25dp"/>
-
-        <dji.ux.widget.config.CameraConfigApertureWidget
-            android:layout_width="50dp"
-            android:layout_height="25dp"/>
-
-        <dji.ux.widget.config.CameraConfigEVWidget
-            android:layout_width="50dp"
-            android:layout_height="25dp"/>
-
-        <dji.ux.widget.config.CameraConfigWBWidget
-            android:layout_width="60dp"
-            android:layout_height="25dp"/>
-
-        <dji.ux.widget.config.CameraConfigStorageWidget
-            android:layout_width="108dp"
-            android:layout_height="25dp"/>
-        <dji.ux.widget.config.CameraConfigSSDWidget
-            android:layout_width="125dp"
-            android:layout_height="25dp"/>
-    </LinearLayout>
-    -->
-
-    <!--
-    <LinearLayout
-        android:id="@+id/camera2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:layout_below="@id/camera"
-        android:background="@color/dark_gray"
-        android:orientation="horizontal">
-        <dji.ux.widget.AutoExposureLockWidget
-            android:layout_width="35dp"
-            android:layout_height="35dp"/>
-        <dji.ux.widget.FocusModeWidget
-            android:layout_width="35dp"
-            android:layout_height="35dp"/>
-        <dji.ux.widget.FocusExposureSwitchWidget
-            android:layout_width="35dp"
-            android:layout_height="35dp"/>
-    </LinearLayout>
-    -->
-
     <dji.ux.widget.ManualFocusWidget
         android:layout_width="50dp"
         android:layout_height="210dp"
@@ -125,7 +64,6 @@
             android:layout_marginRight="12dp"
             tools:ignore="RtlHardcoded"></dji.ux.widget.dashboard.DashboardWidget>
     </LinearLayout>
-
 
     <!--Take off and return home buttons on left -->
     <LinearLayout
@@ -170,16 +108,6 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true" />
     </RelativeLayout>
-
-
-    <!--
-    <dji.ux.widget.HistogramWidget
-        android:layout_toRightOf="@id/TakeOffReturnPanel"
-        android:layout_centerVertical="true"
-        android:layout_width="150dp"
-        android:layout_height="75dp"
-        tools:ignore="RtlHardcoded"/>
-    -->
 
     <dji.ux.panel.CameraSettingExposurePanel
         android:layout_width="180dp"
